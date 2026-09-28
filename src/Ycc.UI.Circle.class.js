@@ -11,12 +11,13 @@
 	
 	/**
 	 * 圆
-	 * @param {object} option			所有可配置的配置项
-	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。
-	 * @param {boolean} [option.fill=true] 填充or描边
-	 * @param {string} [option.color=black] 圆的颜色
-	 * @param {Ycc.Math.Dot|null} option.point 圆心位置，相对坐标
-	 * @param {number} [option.r=10] 圆的半径
+	 * @param option	{object}		所有可配置的配置项
+	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
+	 * @param option.fill=true {boolean}	填充or描边
+	 * @param option.color=black {string} 圆的颜色
+	 * @param option.point {Ycc.Math.Dot} 圆心位置，相对坐标
+	 * @param option.lineWidth {Number} 非填充时的线宽
+	 * @param option.r=10 {number} 圆的半径
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -28,7 +29,8 @@
 		this.r = 10;
 		this.color = "black";
 		this.fill = true;
-		
+		this.lineWidth = 1;
+
 		this.extend(option);
 	};
 	// 继承prototype
@@ -71,6 +73,7 @@
 		ctx.beginPath();
 		ctx.fillStyle = this.color;
 		ctx.strokeStyle = this.color;
+		ctx.lineWidth = this.lineWidth;
 		
 		ctx.arc(
 			point.x*this.dpi,
@@ -101,7 +104,7 @@
 		
 		ctx.save();
 		// 虚线
-		ctx.setLineDash([10]);
+		ctx.setLineDash&&ctx.setLineDash([10]);
 		ctx.beginPath();
 		this.ctx.arc(
 			point.x,

@@ -287,8 +287,7 @@
 	 * @param {Ycc.Math.Rect} absoluteRect	容纳区的绝对位置
 	 * @return {void}
 	 */
-	Ycc.UI.Base.prototype.renderRectBgColor = function (absoluteRect) {
-		var rect = absoluteRect;
+	Ycc.UI.Base.prototype.renderRectBgColor = function () {
 		var dots = this.getAbsolutePositionPolygon();
 		if(!dots||dots.length===0) return console.log(new Ycc.Debugger.Log("no polygon coordirates!").message);
 
@@ -304,7 +303,6 @@
 		ctx.closePath();
 		ctx.fill();
 		ctx.restore();
-		rect = null;
 	};
 	
 	/**
@@ -313,22 +311,25 @@
 	 * @param {Ycc.Math.Rect} absoluteRect	容纳区的绝对位置
 	 * @return {void}
 	 */
-	Ycc.UI.Base.prototype.renderRectBorder = function (absoluteRect) {
+	Ycc.UI.Base.prototype.renderRectBorder = function () {
 		// console.log('绘制边框');
 		// 边框宽度为0，不渲染
 		if(this.rectBorderWidth<=0) return;
+		var dots = this.getAbsolutePositionPolygon();
+		if(!dots||dots.length===0) return console.log(new Ycc.Debugger.Log("no polygon coordirates!").message);
+		
 		var ctx = this.ctxCache;
-
-		var rect = absoluteRect;
 		ctx.save();
+		ctx.setLineDash&&ctx.setLineDash([0]);
 		ctx.strokeStyle = this.rectBorderColor;
-		ctx.strokeWidth = this.rectBorderWidth;
+		ctx.lineWidth = this.rectBorderWidth;
 		ctx.beginPath();
-		ctx.rect(rect.x*this.dpi,rect.y*this.dpi,rect.width*this.dpi,rect.height*this.dpi);
+		ctx.moveTo(dots[0].x*this.dpi,dots[0].y*this.dpi);
+		for(var i=1;i<dots.length-1;i++)
+			ctx.lineTo(dots[i].x*this.dpi,dots[i].y*this.dpi);
 		ctx.closePath();
 		ctx.stroke();
 		ctx.restore();
-		rect = null;
 	};
 	
 	/**
