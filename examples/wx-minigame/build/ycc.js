@@ -7,11 +7,14 @@
  */
 
 /**
+ * @typedef {Object} YccConfig
+ * @property {boolean} [debugDrawContainer=false] - 是否显示所有UI的容纳区域
+ */
+
+/**
  * 应用启动入口类，每个实例都与一个canvas绑定。
  * 该canvas元素会被添加至HTML结构中，作为应用的显示舞台。
- * @param config {Object} 整个ycc的配置项
- * @param config.debugDrawContainer {Boolean} 是否显示所有UI的容纳区域
- * 若开启，所有UI都会创建一个属于自己的离屏canvas，大小与舞台一致
+ * @param {YccConfig} [config] - 整个ycc的配置项
  * @constructor
  */
 var Ycc = function Ycc(config){
@@ -48,12 +51,13 @@ var Ycc = function Ycc(config){
 	
 	/**
 	 * 系统心跳管理器
+	 * @type {Ycc.Ticker|null}
 	 */
 	this.ticker = null;
 	
 	/**
 	 * 调试模块
-	 * @type {null}
+	 * @type {Ycc.Debugger|null}
 	 */
 	this.debugger = null;
 	
@@ -61,7 +65,7 @@ var Ycc = function Ycc(config){
 	 * 资源加载器
 	 * @type {Ycc.Loader}
 	 */
-	this.loader = new Ycc.Loader();
+	this.loader = new Ycc.Loader(this);
 	
 	/**
 	 * 异步请求的封装
@@ -77,7 +81,7 @@ var Ycc = function Ycc(config){
 
 	/**
 	 * 系统的手势模块
-	 * @type {null}
+	 * @type {Ycc.Gesture|null}
 	 */
 	this.gesture = null;
 
@@ -86,7 +90,8 @@ var Ycc = function Ycc(config){
 	 * @type {{debugDrawContainer:boolean}}
 	 */
 	this.config = Ycc.utils.extend({
-		debugDrawContainer:false
+		debugDrawContainer:false,
+		appenv:'h5'
 	},config||{});
 	
 	/**
@@ -95,8 +100,16 @@ var Ycc = function Ycc(config){
 	 */
 	this.isMobile = Ycc.utils.isMobile();
 	
+	/**
+	 * 舞台宽
+	 * @type {number}
+	 */
 	this.stageW = 0;
 	
+	/**
+	 * 舞台高
+	 * @type {number}
+	 */
 	this.stageH = 0;
 	
 	/**
@@ -108,6 +121,7 @@ var Ycc = function Ycc(config){
 
 /**
  * 获取舞台的宽
+ * @return {number}
  */
 Ycc.prototype.getStageWidth = function () {
 	return this.canvasDom.width;
@@ -115,6 +129,7 @@ Ycc.prototype.getStageWidth = function () {
 
 /**
  * 获取舞台的高
+ * @return {number}
  */
 Ycc.prototype.getStageHeight = function () {
 	return this.canvasDom.height;
@@ -122,7 +137,7 @@ Ycc.prototype.getStageHeight = function () {
 
 /**
  * 绑定canvas元素，一个canvas绑定一个ycc实例
- * @param canvas
+ * @param {HTMLCanvasElement} canvas
  * @return {Ycc}
  */
 Ycc.prototype.bindCanvas = function (canvas) {
@@ -130,6 +145,8 @@ Ycc.prototype.bindCanvas = function (canvas) {
 	this.canvasDom = canvas;
 	
 	this.ctx = canvas.getContext('2d');
+	// 适配wxapp 默认返回{left:0,top:0} @todo 待优化
+	this.ctx.canvas.getBoundingClientRect = this.ctx.canvas.getBoundingClientRect?this.ctx.canvas.getBoundingClientRect:function(){return{left:0,top:0}};
 	
 	this.layerList = [];
 	
@@ -305,7 +322,8 @@ Ycc.prototype._initStageGestureEvent = function () {
 
 
 /**
- * 清除
+ * 清除舞台
+ * @return {void}
  */
 Ycc.prototype.clearStage = function () {
 	this.ctx.clearRect(0,0,this.getStageWidth(),this.getStageHeight());
@@ -314,8 +332,8 @@ Ycc.prototype.clearStage = function () {
 
 /**
  * 根据id查找图层
- * @param id 图层id
- * @return {Ycc.Layer}
+ * @param {number} id - 图层id
+ * @return {Ycc.Layer|null}
  */
 Ycc.prototype.findLayerById = function (id) {
 	for(var i =0;i<this.layerList.length;i++){
@@ -328,8 +346,8 @@ Ycc.prototype.findLayerById = function (id) {
 
 /**
  * 根据id查找UI
- * @param id UI的id
- * @return {Ycc.UI}
+ * @param {number} id - UI的id
+ * @return {Ycc.UI.Base|null}
  */
 Ycc.prototype.findUiById = function (id) {
 	for(var i =0;i<this.layerList.length;i++){
@@ -401,31 +419,32 @@ Ycc.prototype.getUIListFromPointer = function (dot,options) {
  * var stage = canvas || ycc.createCanvas();
  * ycc.bindCanvas(stage);
  *
- * @param options
- * @param options.width
- * @param options.height
- * @param options.dpiAdaptation		是否根据dpi适配canvas大小
- * @return {*}	已创建的canvas元素
+ * @param {object} [options]
+ * @param {number} [options.width] - canvas宽度
+ * @param {number} [options.height] - canvas高度
+ * @param {boolean} [options.dpiAdaptation=false] - 是否根据dpi适配canvas大小
+ * @return {HTMLCanvasElement} 已创建的canvas元素
  */
 Ycc.prototype.createCanvas = function (options) {
 	options = options||{};
 	var option = Ycc.utils.mergeObject({
-		width:window.innerWidth,
-		height:window.innerHeight,
-		dpiAdaptation:false
+		width:this.getSystemInfo().windowWidth,
+		height:this.getSystemInfo().windowHeight,
+		dpiAdaptation:false,
+		canvasDom:null
 	},options);
-	var canvas = document.createElement("canvas");
+	var canvas = option.canvasDom || document.createElement("canvas");
 	var dpi = this.getSystemInfo().devicePixelRatio;
 	if(option.dpiAdaptation){
 		canvas.width = option.width*dpi;
 		canvas.height = option.height*dpi;
-		canvas.style.width=option.width+'px';
+		if(canvas.style) canvas.style.width=option.width+'px';
 	}else{
 		canvas.width = option.width;
 		canvas.height = option.height;
 	}
 	// 去除5px inline-block偏差
-	canvas.style.display='block';
+	if(canvas.style) canvas.style.display='block';
 	return canvas;
 };
 
@@ -447,9 +466,10 @@ Ycc.prototype.getSystemInfo = function () {
 
 /**
  * 创建一个离屏的绘图空间，默认大小与舞台等同
- * @param options
- * @param options.width
- * @param options.height
+ * @param {object} [options]
+ * @param {number} [options.width] - 离屏画布宽度
+ * @param {number} [options.height] - 离屏画布高度
+ * @return {CanvasRenderingContext2D}
  */
 Ycc.prototype.createCacheCtx = function (options) {
 	options = options || {
@@ -701,14 +721,14 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 点
-	 * @param x	{number} x坐标
-	 * @param y {number} y坐标
+	 * @param {number} x - x坐标
+	 * @param {number} y - y坐标
 	 * @constructor
 	 *//**
 	 * 点
-	 * @param [dot] {object}
-	 * @param dot.x {number} x坐标
-	 * @param dot.y {number} y坐标
+	 * @param {object} dot - 点对象
+	 * @param {number} dot.x - x坐标
+	 * @param {number} dot.y - y坐标
 	 * @constructor
 	 */
 	Ycc.Math.Dot = function (dot) {
@@ -736,7 +756,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 点是否在某个区域内
-	 * @param rect	{Ycc.Math.Rect}	区域
+	 * @param {Ycc.Math.Rect} rect - 区域
+	 * @return {boolean}
 	 */
 	Ycc.Math.Dot.prototype.isInRect = function (rect) {
 		return this.x>=rect.x&&this.x<=rect.x+rect.width  && this.y>=rect.y && this.y<=rect.y+rect.height;
@@ -744,7 +765,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 判读两点位置是否相同
-	 * @param dot
+	 * @param {Ycc.Math.Dot} dot - 另一个点
 	 * @return {boolean}
 	 */
 	Ycc.Math.Dot.prototype.isEqual = function (dot) {
@@ -753,7 +774,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 点的加法/点的偏移量
-	 * @param dot {Ycc.Math.Dot} 加的点
+	 * @param {Ycc.Math.Dot} dot - 加的点
 	 * @return {Ycc.Math.Dot} 返回一个新的点
 	 */
 	Ycc.Math.Dot.prototype.plus = function (dot) {
@@ -762,9 +783,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 将当前点绕另外一个点旋转一定度数
-	 * @param rotation	旋转角度
-	 * @param anchorDot	锚点坐标
-	 * @return 旋转后的点
+	 * @param {number} rotation - 旋转角度
+	 * @param {Ycc.Math.Dot} [anchorDot] - 锚点坐标
+	 * @return {Ycc.Math.Dot} 旋转后的点
 	 */
 	Ycc.Math.Dot.prototype.rotate = function (rotation,anchorDot) {
 		anchorDot=anchorDot||new Ycc.Math.Dot(0,0);
@@ -776,9 +797,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 判断三点是否共线
-	 * @param dot1
-	 * @param dot2
-	 * @param dot3
+	 * @param {Ycc.Math.Dot} dot1 - 第一个点
+	 * @param {Ycc.Math.Dot} dot2 - 第二个点
+	 * @param {Ycc.Math.Dot} dot3 - 第三个点
+	 * @return {boolean}
 	 */
 	Ycc.Math.Dot.threeDotIsOnLine = function (dot1,dot2,dot3) {
 		// 存在位置相同点肯定共线
@@ -797,24 +819,24 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 区域
-	 * @param startDot {Dot}
-	 * @param width
-	 * @param height
+	 * @param {Ycc.Math.Dot} startDot - 起点
+	 * @param {number} width - 宽度
+	 * @param {number} height - 高度
 	 * @constructor
 	 *//**
 	 * 区域
-	 * @param x
-	 * @param y
-	 * @param width
-	 * @param height
+	 * @param {number} x - 左上角x坐标
+	 * @param {number} y - 左上角y坐标
+	 * @param {number} width - 宽度
+	 * @param {number} height - 高度
 	 * @constructor
 	 *//**
 	 * 区域
-	 * @param rect
-	 * @param rect.x
-	 * @param rect.y
-	 * @param rect.width
-	 * @param rect.height
+	 * @param {object} rect - 矩形对象
+	 * @param {number} rect.x - 左上角x坐标
+	 * @param {number} rect.y - 左上角y坐标
+	 * @param {number} rect.width - 宽度
+	 * @param {number} rect.height - 高度
 	 * @constructor
 	 */
 	Ycc.Math.Rect = function (rect) {
@@ -869,6 +891,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 将矩形的长和宽转换为正数
+	 * @return {void}
 	 */
 	Ycc.Math.Rect.prototype.toPositive = function () {
 		var x0 = this.x,
@@ -897,8 +920,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 根据顶点更新数值
-	 * @param vertices
-	 * @return {*}
+	 * @param {Ycc.Math.Dot[]} vertices - 顶点数组
+	 * @return {void}
 	 */
 	Ycc.Math.Rect.prototype.updateByVertices = function (vertices) {
 		if(!Ycc.utils.isArray(vertices))
@@ -914,6 +937,19 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 向量构造函数
+	 * @constructor
+	 *//**
+	 * 向量构造函数
+	 * @param {number} x - x分量
+	 * @param {number} y - y分量
+	 * @param {number} [z=0] - z分量
+	 * @constructor
+	 *//**
+	 * 向量构造函数
+	 * @param {object} obj - 向量对象
+	 * @param {number} [obj.x=0] - x分量
+	 * @param {number} [obj.y=0] - y分量
+	 * @param {number} [obj.z=0] - z分量
 	 * @constructor
 	 */
 	Ycc.Math.Vector = function () {
@@ -937,7 +973,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 向量的点乘法
-	 * @param v2 {Ycc.Math.Vector} 点乘向量
+	 * @param {Ycc.Math.Vector} v2 - 点乘向量
 	 * @return {number}
 	 */
 	Ycc.Math.Vector.prototype.dot = function (v2) {
@@ -947,8 +983,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 向量的叉乘法
-	 * @param v2 {Ycc.Math.Vector} 叉乘向量
-	 * @return {number}
+	 * @param {Ycc.Math.Vector} v2 - 叉乘向量
+	 * @return {Ycc.Math.Vector}
 	 */
 	Ycc.Math.Vector.prototype.cross = function (v2) {
 		var res = new Ycc.Math.Vector();
@@ -970,9 +1006,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 矩阵的构造方法。
-	 * @param data	{array}		矩阵所有行拼接的数组
-	 * @param m		{number}	行数
-	 * @param n		{number}	列数
+	 * @param {number[]} data - 矩阵所有行拼接的数组
+	 * @param {number} m - 行数
+	 * @param {number} n - 列数
 	 * @constructor
 	 */
 	Ycc.Math.Matrix = function (data,m,n) {
@@ -983,7 +1019,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 矩阵点乘法
-	 * @param M	{Ycc.Math.Matrix}	另一个矩阵
+	 * @param {Ycc.Math.Matrix} M - 另一个矩阵
+	 * @return {Ycc.Math.Matrix}
 	 */
 	Ycc.Math.Matrix.prototype.dot = function (M) {
 		if(M.m!==this.n || M.n!==this.m)
@@ -1009,8 +1046,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 获取矩阵i行j列的元素。
 	 * 注：i，i下标从1开始
-	 * @param i
-	 * @param j
+	 * @param {number} i - 行号
+	 * @param {number} j - 列号
 	 * @return {number}
 	 */
 	Ycc.Math.Matrix.prototype.get = function (i, j) {
@@ -1020,9 +1057,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 设置矩阵i行j列的元素为val
 	 * 注：i，i下标从1开始
-	 * @param i
-	 * @param j
-	 * @param val
+	 * @param {number} i - 行号
+	 * @param {number} j - 列号
+	 * @param {number} val - 值
+	 * @return {void}
 	 */
 	Ycc.Math.Matrix.prototype.set = function (i, j, val) {
 		this.data[(i-1)*this.n+j-1] = val;
@@ -1949,7 +1987,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 总帧数<=总心跳次数；
 	 * 只有当总帧数*每帧的理论时间小于总心跳时间，帧的监听函数才会触发，以此来控制帧率；
 	 *
-	 * @param yccInstance
+	 * @param {Ycc} yccInstance - ycc实例
 	 * @constructor
 	 */
 	Ycc.Ticker = function (yccInstance) {
@@ -1963,7 +2001,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 当前帧
-		 * @type {Frame}
+		 * @type {Ycc.Ticker.Frame|null}
 		 */
 		this.currentFrame = null;
 		
@@ -1971,7 +2009,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		 * 启动时间戳
 		 * @type {number}
 		 */
-		this.startTime = performance.now();
+		this.startTime = Date.now();
 		
 		/**
 		 * 上一帧刷新的时间戳
@@ -2057,11 +2095,12 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 定时器开始
-	 * @param [frameRate] 心跳频率，即帧率
-	 * 可取值有[60,30,20,15]
+	 * @param {number} [frameRate] - 心跳频率，即帧率。可取值有[60,30,20,15]
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.start = function (frameRate) {
-		var timer = requestAnimationFrame || webkitRequestAnimationFrame || mozRequestAnimationFrame || oRequestAnimationFrame || msRequestAnimationFrame;
+		// 兼容wxapp处理
+		var timer = this.yccInstance.canvasDom.requestAnimationFrame? this.yccInstance.canvasDom.requestAnimationFrame : (requestAnimationFrame || webkitRequestAnimationFrame || mozRequestAnimationFrame || oRequestAnimationFrame || msRequestAnimationFrame);
 		var self = this;
 
 		//重置状态
@@ -2081,7 +2120,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		self.frameAllCount = 0;
 
 		// 启动时间
-		self.startTime = performance.now();
+		self.startTime = Date.now();
 
 		// 正在进行中 不再启动心跳
 		if(self._isRunning) return;
@@ -2132,9 +2171,11 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 停止心跳
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.stop = function () {
-		var stop = cancelAnimationFrame || webkitCancelAnimationFrame || mozCancelAnimationFrame || oCancelAnimationFrame;
+		// 兼容wxapp处理
+		var stop = this.yccInstance.canvasDom.cancelAnimationFrame? this.yccInstance.canvasDom.cancelAnimationFrame :( cancelAnimationFrame || webkitCancelAnimationFrame || mozCancelAnimationFrame || oCancelAnimationFrame);
 		stop || (stop = function (id) {
 			return clearTimeout(id);
 		});
@@ -2147,7 +2188,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 给每帧添加自定义的监听函数
-	 * @param listener
+	 * @param {function(Ycc.Ticker.Frame): void} listener - 帧监听函数
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.addFrameListener = function (listener) {
 		this.frameListenerList.push(listener);
@@ -2155,7 +2197,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 移除某个监听函数
-	 * @param listener
+	 * @param {function(Ycc.Ticker.Frame): void} listener - 帧监听函数
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.removeFrameListener = function (listener) {
 		var index = this.frameListenerList.indexOf(listener);
@@ -2166,6 +2209,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 执行所有自定义的帧监听函数
+	 * @param {Ycc.Ticker.Frame} frame - 帧对象
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.broadcastFrameEvent = function (frame) {
 		for(var i =0;i<this.frameListenerList.length;i++){
@@ -2176,6 +2221,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 执行所有图层的监听函数
+	 * @param {Ycc.Ticker.Frame} frame - 帧对象
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.broadcastToLayer = function (frame) {
 		for(var i = 0;i<this.yccInstance.layerList.length;i++){
@@ -2188,7 +2235,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 帧 私有类
 	 * @constructor
-	 * @param ticker {Ycc.Ticker}
+	 * @param {Ycc.Ticker} ticker
+	 * @private
 	 */
 	function Frame(ticker){
 		/**
@@ -2222,7 +2270,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		 */
 		this.isRendered = false;
 	}
-	
+
 })(Ycc);;/**
  * @file    Ycc.Debugger.class.js
  * @author  xiaohei
@@ -2236,6 +2284,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * ycc的调试模块
 	 * @constructor
+	 * @param {Ycc} yccInstance - ycc实例
 	 */
 	Ycc.Debugger = function (yccInstance) {
 		this.yccClass = Ycc.Debugger;
@@ -2298,6 +2347,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 调试面板的图层
+		 * @type {Ycc.Layer|null}
 		 */
 		this.layer = null;
 		
@@ -2356,10 +2406,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 添加一个信息项
-	 * @param name
-	 * @param cb()	{function}
-	 *  cb必须返回一个值，这个值将直接填入
-	 *
+	 * @param {string} name - 字段名称
+	 * @param {function(): *} cb - 回调函数，必须返回一个值，这个值将直接填入
 	 */
 	Ycc.Debugger.prototype.addField = function (name, cb) {
 		var index = this.fields.length;
@@ -2385,8 +2433,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 更新某个调试字段的回调函数
-	 * @param name
-	 * @param cb
+	 * @param {string} name - 字段名称
+	 * @param {function(): *} cb - 新的回调函数
 	 */
 	Ycc.Debugger.prototype.updateField = function (name,cb) {
 		for(var i=0;i<this.fields.length;i++){
@@ -2401,16 +2449,16 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 调试日志信息类
-	 * @param message
 	 * @constructor
+	 * @param {string} message - 日志消息
 	 */
 	Ycc.Debugger.Log = function (message) {
 		this.message = '[Ycc logger]=> '+message;
 	};
 	/**
 	 * 调试错误信息类
-	 * @param message
 	 * @constructor
+	 * @param {string} message - 错误消息
 	 */
 	Ycc.Debugger.Error = function (message) {
 		this.message = '[Ycc  error]=> '+message;
@@ -2431,12 +2479,27 @@ Ycc.prototype.createCacheCtx = function (options) {
 (function (Ycc) {
 	
 	/**
+	 * @typedef {Object} Ycc.Loader.ResourceItem
+	 * @property {string} [name] - 资源名称
+	 * @property {string} url - 资源的url
+	 * @property {string} [type='image'] - 资源类型 image/audio
+	 * @property {HTMLImageElement|HTMLAudioElement} [res] - 加载完成的资源
+	 * @property {string} [crossOrigin] - 跨域配置
+	 * @property {number} [timeout=10000] - 加载超时时间(ms)
+	 */
+	
+	/**
 	 * ycc实例的资源加载类
+	 * @param yccInstance {Ycc} ycc实例
 	 * @constructor
 	 */
-	Ycc.Loader = function () {
+	Ycc.Loader = function (yccInstance) {
 		this.yccClass = Ycc.Loader;
-		
+		/**
+		 * ycc实例
+		 * @type {Ycc}
+		 */
+		this.yccInstance = yccInstance;
 		/**
 		 * 异步模块
 		 * @type {Ycc.Ajax}
@@ -2452,21 +2515,16 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 并发加载资源
-	 * @param resArr
-	 * @param [resArr.name] 			资源名称，方便查找
-	 * @param resArr.url  				资源的url
-	 * @param [resArr.type]  			资源类型 image,audio，默认为image
-	 * @param [resArr.res]  			资源加载完成后，附加给该字段
-	 * @param [resArr.crossOrigin]  	资源跨域配置项
-	 * @param endCb						资源加载结束的回调
-	 * @param [progressCb]				资源加载进度的回调
-	 * @param [endResArr] 				用于存储加载已结束的音频，一般不用传值
-	 * @param [endResMap] 				用于存储加载已结束的音频map，一般不用传值。注：map的key是根据name字段生成的
+	 * @param {Ycc.Loader.ResourceItem[]} resArr - 资源列表
+	 * @param {function(Ycc.Loader.ResourceItem[], Object): void} endCb - 资源加载结束的回调
+	 * @param {function(Ycc.Loader.ResourceItem, Error|null, number): void} [progressCb] - 资源加载进度的回调
+	 * @param {Ycc.Loader.ResourceItem[]} [endResArr] - 用于存储加载已结束的音频，一般不用传值
+	 * @param {Object} [endResMap] - 用于存储加载已结束的音频map，一般不用传值。注：map的key是根据name字段生成的
 	 */
 	Ycc.Loader.prototype.loadResParallel = function (resArr, endCb, progressCb,endResArr,endResMap) {
 		endResArr = endResArr || [];
 		endResMap = endResMap || {};
-		
+		var self = this;
 		for(var i=0;i<resArr.length;i++){
 			var curRes = resArr[i];
 			var successEvent = "load";
@@ -2474,9 +2532,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 			curRes.type = curRes.type || 'image';
 			
 			if(curRes.type==='image'){
-				curRes.res = new Image();
+				// curRes.res = new Image();
+				curRes.res = self._createImage();
+				if(curRes.res.setAttribute) curRes.res.setAttribute('crossOrigin',curRes.crossOrigin||'');
 				curRes.res.src = curRes.url;
-				curRes.res.crossOrigin = curRes.crossOrigin||'';
 			}
 			if(curRes.type==='audio'){
 				successEvent = 'loadedmetadata';
@@ -2486,9 +2545,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 				curRes.res.crossOrigin = curRes.crossOrigin||'';
 			}
 			
-			curRes.res.addEventListener(successEvent,listener(curRes,i,true));
-			curRes.res.addEventListener(errorEvent,listener(curRes,i,false));
-			
+			// curRes.res.addEventListener(successEvent,listener(curRes,i,true));
+			// curRes.res.addEventListener(errorEvent,listener(curRes,i,false));
+			curRes.res['on'+successEvent] = listener(curRes,i,true);
+			curRes.res['on'+errorEvent] = listener(curRes,i,false);			
 			
 			function listener(curRes,index,error) {
 				return function () {
@@ -2506,15 +2566,11 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 	/**
 	 * 依次加载资源
-	 * @param resArr
-	 * @param [resArr.name] 	资源名称，方便查找
-	 * @param resArr.url  		资源的url
-	 * @param [resArr.type]  	资源类型 image,audio
-	 * @param [resArr.res]  	资源加载完成后，附加给该字段
-	 * @param endCb				资源加载结束的回调
-	 * @param [progressCb]		资源加载进度的回调
-	 * @param [endResArr] 		用于存储加载已结束的音频，一般不用传值
-	 * @param [endResMap] 		用于存储加载已结束的音频map，一般不用传值。注：map的key是根据name字段生成的
+	 * @param {Ycc.Loader.ResourceItem[]} resArr - 资源列表
+	 * @param {function(Ycc.Loader.ResourceItem[], Object): void} endCb - 资源加载结束的回调
+	 * @param {function(Ycc.Loader.ResourceItem, Error|null, number): void} [progressCb] - 资源加载进度的回调
+	 * @param {Ycc.Loader.ResourceItem[]} [endResArr] - 用于存储加载已结束的音频，一般不用传值
+	 * @param {Object} [endResMap] - 用于存储加载已结束的音频map，一般不用传值。注：map的key是根据name字段生成的
 	 */
 	Ycc.Loader.prototype.loadResOneByOne = function (resArr, endCb, progressCb,endResArr,endResMap) {
 		endResArr = endResArr || [];
@@ -2537,16 +2593,22 @@ Ycc.prototype.createCacheCtx = function (options) {
 		polyfillWx(self.basePath + curRes.url,function (fullPath) {
 			
 			if(curRes.type==='image'){
-				curRes.res = new Image();
+				// curRes.res = new Image();
+				curRes.res = self._createImage();
+				if(curRes.res.setAttribute) curRes.res.setAttribute('crossOrigin',curRes.crossOrigin||'');
 				curRes.res.src = fullPath;
 				
-				curRes.res.addEventListener(successEvent,onSuccess);
-				curRes.res.addEventListener(errorEvent,onError);
+				// curRes.res.addEventListener(successEvent,onSuccess);
+				// curRes.res.addEventListener(errorEvent,onError);
+				curRes.res['on'+successEvent] = onSuccess;
+				curRes.res['on'+errorEvent] = onError;
 				
 				// 超时提示只针对图片
 				timerId = setTimeout(function () {
-					curRes.res.removeEventListener(successEvent,onSuccess);
-					curRes.res.removeEventListener(errorEvent,onSuccess);
+					curRes.res['on'+successEvent] = null;
+					curRes.res['on'+errorEvent] = null;
+					// curRes.res.removeEventListener(successEvent,onSuccess);
+					// curRes.res.removeEventListener(errorEvent,onSuccess);
 					onError({message:"获取资源超时！"});
 				},curRes.timeout||10000);
 				
@@ -2587,8 +2649,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 			// console.log('loader:',curRes.name,'success');
 			clearTimeout(timerId);
 			if(curRes.type==='image' || ("undefined"!==typeof wx && curRes.type==='audio' )){
-				curRes.res.removeEventListener(successEvent,onSuccess);
-				curRes.res.removeEventListener(errorEvent,onError);
+				// curRes.res.removeEventListener(successEvent,onSuccess);
+				// curRes.res.removeEventListener(errorEvent,onError);
 			}
 
 			endResArr.push(curRes);
@@ -2617,8 +2679,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 获取资源
-	 * @param resArr
-	 * @param name
+	 * @param {string} name - 资源名称
+	 * @param {Ycc.Loader.ResourceItem[]} resArr - 资源列表
+	 * @return {Ycc.Loader.ResourceItem|null}
 	 */
 	Ycc.Loader.prototype.getResByName = function (name,resArr) {
 		for(var i=0;i<resArr.length;i++){
@@ -2627,6 +2690,14 @@ Ycc.prototype.createCacheCtx = function (options) {
 		}
 		return null;
 	};
+
+	/**
+	 * 创建图片 兼容处理
+	 */
+	Ycc.Loader.prototype._createImage = function(){
+		if(this.yccInstance && this.yccInstance.config.appenv==='wxapp') return this.yccInstance.canvasDom.createImage();
+		return new Image();
+	}
 	
 	
 	
@@ -2744,18 +2815,20 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 	/**
 	 * ajax get请求
-	 * @param url
-	 * @param successCb			成功的回调函数
-	 * @param errorCb			失败的回调函数
-	 * @param responseType
+	 * @param {string} url - 请求地址
+	 * @param {function} successCb - 成功的回调函数
+	 * @param {function} errorCb - 失败的回调函数
+	 * @param {string} [responseType='json'] - 响应类型
+	 * @return {void}
 	 */
 	/**
 	 * ajax get请求
-	 * @param option
-	 * @param option.url
-	 * @param option.successCb
-	 * @param option.successCb
-	 * @param option.responseType
+	 * @param {object} option - 请求配置
+	 * @param {string} option.url - 请求地址
+	 * @param {function} option.successCb - 成功的回调函数
+	 * @param {function} option.errorCb - 失败的回调函数
+	 * @param {string} [option.responseType='json'] - 响应类型
+	 * @return {void}
 	 */
 	Ycc.Ajax.prototype.get = function (option) {
 		var self = this;
@@ -2808,7 +2881,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 事件的数据结构类
-	 * @param type {String}	事件类型
+	 * @param {string|Object} type - 事件类型字符串，或包含事件属性的对象
 	 * @constructor
 	 */
 	Ycc.Event = function (type) {
@@ -2816,21 +2889,22 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 事件类型
-		 * @type {string|Object}
+		 * @type {string}
 		 */
 		this.type = type?type:"";
 		/**
-		 * 鼠标或点击位置
+		 * 鼠标或点击位置x
 		 * @type {number}
 		 */
 		this.x=0;
 		/**
-		 * 鼠标或点击位置
+		 * 鼠标或点击位置y
 		 * @type {number}
 		 */
 		this.y=0;
 		/**
 		 * ycc事件所对应的原始事件
+		 * @type {Event|null}
 		 */
 		this.originEvent = null;
 		
@@ -2933,73 +3007,104 @@ Ycc.prototype.createCacheCtx = function (options) {
 		 */
 		this.stopAllEvent = false;
 		
-		/**
-		 * 点击 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onclick = null;
-		/**
-		 * 鼠标按下 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmousedown = null;
-		/**
-		 * 鼠标抬起 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmouseup = null;
-		/**
-		 * 鼠标移动 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmousemove = null;
-		/**
-		 * 拖拽开始 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ondragstart = null;
-		/**
-		 * 拖拽 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ondragging = null;
-		/**
-		 * 拖拽结束 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ondragend = null;
-		/**
-		 * 鼠标移入 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmouseover = null;
-		/**
-		 * 鼠标移出 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmouseout = null;
-		/**
-		 * 触摸开始 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ontouchstart = null;
-		
-		/**
-		 * 触摸移动 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ontouchmove = null;
-		/**
-		 * 触摸结束 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ontouchend = null;
+	/**
+	 * 点击 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onclick = null;
+	/**
+	 * 鼠标按下 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmousedown = null;
+	/**
+	 * 鼠标抬起 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmouseup = null;
+	/**
+	 * 鼠标移动 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmousemove = null;
+	/**
+	 * 拖拽开始 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ondragstart = null;
+	/**
+	 * 拖拽 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ondragging = null;
+	/**
+	 * 拖拽结束 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ondragend = null;
+	/**
+	 * 鼠标移入 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmouseover = null;
+	/**
+	 * 鼠标移出 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmouseout = null;
+	/**
+	 * 触摸开始 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ontouchstart = null;
+	
+	/**
+	 * 触摸移动 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ontouchmove = null;
+	/**
+	 * 触摸结束 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ontouchend = null;
 
-		/**
-		 * 点击事件 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ontap = null;
+	/**
+	 * 点击事件 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ontap = null;
+
+	/**
+	 * 缩放事件 的监听。默认为null
+	 * @type {function}
+	 */
+	this.onzoom = null;
+
+	/**
+	 * 旋转事件 的监听。默认为null
+	 * @type {function}
+	 */
+	this.onrotate = null;
+
+	/**
+	 * 多点触控开始 的监听。默认为null
+	 * @type {function}
+	 */
+	this.onmultistart = null;
+
+	/**
+	 * 多点触控变化 的监听。默认为null
+	 * @type {function}
+	 */
+	this.onmultichange = null;
+
+	/**
+	 * 多点触控结束 的监听。默认为null
+	 * @type {function}
+	 */
+	this.onmultiend = null;
+	
 	};
 	
 	
@@ -3007,7 +3112,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 释放某个监听器的内存
 	 * 将其所有引用属性设为null，等待GC
 	 * @static
-	 * @param listener
+	 * @param {Ycc.Listener} listener - 监听器对象
 	 */
 	Ycc.Listener.release = function (listener) {
 		// 临时变量
@@ -3121,8 +3226,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 添加某个类型的监听器
-	 * @param type	{string}
-	 * @param listener	{function}
+	 * @param {string} type - 事件类型
+	 * @param {Function} listener - 监听器函数
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.addListener = function (type, listener) {
 		var ls = this.listeners[type];
@@ -3134,7 +3240,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 阻止某个事件类型继续传递
-	 * @param type
+	 * @param {string} type - 事件类型
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.stop = function (type) {
 		this.stopType[type] = true;
@@ -3142,8 +3249,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 触发某一类型的监听器
-	 * @param type
-	 * @param data
+	 * @param {string} type - 事件类型
+	 * @param {...*} data - 事件数据
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.triggerListener = function (type,data) {
 		if(this.stopAllEvent) return;
@@ -3163,8 +3271,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 移除某个类型的监听器
-	 * @param type
-	 * @param listener
+	 * @param {string} type - 事件类型
+	 * @param {Function} listener - 监听器函数
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.removeListener = function (type,listener) {
 		var ls = this.listeners[type];
@@ -3179,7 +3288,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 禁止某个事件触发
-	 * @param type
+	 * @param {string} type - 事件类型
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.disableEvent = function (type) {
 		this.disableType[type] = true;
@@ -3187,7 +3297,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 恢复某个事件的触发
-	 * @param type
+	 * @param {string} type - 事件类型
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.resumeEvent = function (type) {
 		this.disableType[type] = false;
@@ -3210,6 +3321,15 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	
 	
+	/**
+	 * @typedef {Object} Ycc.TouchLifeTracer.TouchLife
+	 * @property {number} id - 生命周期id
+	 * @property {Touch} startTouchEvent - 开始的touch事件
+	 * @property {Touch|null} endTouchEvent - 结束的touch事件
+	 * @property {Touch[]} moveTouchEventList - 移动的touch事件列表
+	 * @property {number} startTime - 开始时间
+	 * @property {number} endTime - 结束时间
+	 */
 	
 	/**
 	 * touch事件的生命周期类
@@ -3270,16 +3390,19 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 追踪的对象
+		 * @type {HTMLElement}
 		 * */
 		this.target = opt.target;
 		
 		/**
 		 * 作用于target的所有生命周期，包含存活和死亡的周期
+		 * @type {Ycc.TouchLifeTracer.TouchLife[]}
 		 * */
 		this._lifeList = [];
 		
 		/**
 		 * 当前存活的生命周期，正在与target接触的触摸点生命周期
+		 * @type {Ycc.TouchLifeTracer.TouchLife[]}
 		 * */
 		this.currentLifeList = [];
 		
@@ -3303,29 +3426,26 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 某个生命周期开始
-		 * @type {function}
-		 * @param callback(life)
+		 * @type {function(Ycc.TouchLifeTracer.TouchLife): void}
 		 * */
 		this.onlifestart = null;
 		
 		/**
 		 * 某个生命周期状态变更
-		 * @type {function}
-		 * @param callback(life)
+		 * @type {function(Ycc.TouchLifeTracer.TouchLife): void}
 		 * */
 		this.onlifechange = null;
 		
 		/**
 		 * 某个生命周期开始
-		 * @type {function}
-		 * @param callback(life)
+		 * @type {function(Ycc.TouchLifeTracer.TouchLife): void}
 		 * */
 		this.onlifeend = null;
 		
 		/**
 		 * 添加生命周期
-		 * @param life {TouchLife}	生命周期
-		 * @return {*}
+		 * @param {Ycc.TouchLifeTracer.TouchLife} life	生命周期
+		 * @return {void}
 		 */
 		this.addLife = function (life) {
 			this._lifeList.push(life);
@@ -3333,8 +3453,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 根据identifier查找生命周期，此方法只能在生命周期内使用
-		 * @param identifier
-		 * @return {*}
+		 * @param {number} identifier
+		 * @return {Ycc.TouchLifeTracer.TouchLife|undefined}
 		 */
 		this.findCurrentLifeByTouchID = function (identifier) {
 			for(var i=0;i<this.currentLifeList.length;i++){
@@ -3346,7 +3466,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 根据touchID删除当前触摸的生命周期
-		 * @param identifier
+		 * @param {number} identifier
 		 * @return {boolean}
 		 */
 		this.deleteCurrentLifeByTouchID = function (identifier) {
@@ -3365,56 +3485,68 @@ Ycc.prototype.createCacheCtx = function (options) {
 		 * 初始化
 		 */
 		this.init = function () {
-			var self = this;
-			this.target.addEventListener("touchstart",function (e) {
-				e.preventDefault();
-				self.syncTouches(e);
-				var life = new TouchLife();
-				life.startTouchEvent = e.changedTouches[0];
-				self.addLife(life);
-				self.currentLifeList.push(life);
-				// self.onlifestart && self.onlifestart(life);
-				self.triggerListener('lifestart',life);
-			});
-			
-			this.target.addEventListener('touchmove',function (e) {
-				e.preventDefault();
-				self.syncTouches(e);
-				var touches = e.changedTouches;
-				for(var i=0;i<touches.length;i++){
-					var touch = touches[i];
-					var life = self.findCurrentLifeByTouchID(touch.identifier);
-					var index = self.indexOfTouchFromMoveTouchEventList(life.moveTouchEventList,touch);
-					if(index===-1)
-						life.moveTouchEventList.push(touch);
-					else
-						life.moveTouchEventList[index]=touch;
-					// self.onlifechange && self.onlifechange(life);
-					self.triggerListener('lifechange',life);
-				}
-			});
-			this.target.addEventListener('touchend',function (e) {
-				e.preventDefault();
-				self.syncTouches(e);
-				var touch = e.changedTouches[0];
-				var life = self.findCurrentLifeByTouchID(touch.identifier);
-				life.endTouchEvent = touch;
-				life.endTime = Date.now();
-				self.deleteCurrentLifeByTouchID(touch.identifier);
-				// self.onlifeend && self.onlifeend(life);
-				self.triggerListener('lifeend',life);
-			});
+			if(!this.target.addEventListener) return console.error('addEventListener undefined');
+			this.target.addEventListener("touchstart",this.touchstart.bind(this));
+			this.target.addEventListener('touchmove',this.touchmove.bind(this));
+			this.target.addEventListener('touchend',this.touchend.bind(this));
 		};
 		
 		this.init();
 	};
+
+	Ycc.TouchLifeTracer.prototype.touchstart = function (e) {
+		console.log('touchstart',e);
+		var self = this;
+		if(e.preventDefault) e.preventDefault();
+		self.syncTouches(e);
+		var life = new TouchLife();
+		life.startTouchEvent = self.changedTouches[0];
+		self.addLife(life);
+		self.currentLifeList.push(life);
+		// console.log('push life',self.currentLifeList,self._lifeList)
+		// self.onlifestart && self.onlifestart(life);
+		self.triggerListener('lifestart',life);
+	};
+
+	Ycc.TouchLifeTracer.prototype.touchmove = function (e) {
+		var self = this;
+		if(e.preventDefault) e.preventDefault();
+		self.syncTouches(e);
+		var touches = self.changedTouches;
+		for(var i=0;i<touches.length;i++){
+			var touch = touches[i];
+			var life = self.findCurrentLifeByTouchID(touch.identifier);
+			var index = self.indexOfTouchFromMoveTouchEventList(life.moveTouchEventList,touch);
+			if(index===-1)
+				life.moveTouchEventList.push(touch);
+			else
+				life.moveTouchEventList[index]=touch;
+			// self.onlifechange && self.onlifechange(life);
+			self.triggerListener('lifechange',life);
+		}
+	}
+
+	Ycc.TouchLifeTracer.prototype.touchend = function (e) {
+		var self = this;
+		if(e.preventDefault) e.preventDefault();
+		self.syncTouches(e);
+		var touch = self.changedTouches[0];
+		var life = self.findCurrentLifeByTouchID(touch.identifier);
+		life.endTouchEvent = touch;
+		life.endTime = Date.now();
+		self.deleteCurrentLifeByTouchID(touch.identifier);
+		// self.onlifeend && self.onlifeend(life);
+		self.triggerListener('lifeend',life);
+	}
+	
+
 	
 	// 继承prototype
 	Ycc.utils.mergeObject(Ycc.TouchLifeTracer.prototype,Ycc.Listener.prototype);
 	
 	/**
 	 * 同步当前HTML元素的touches
-	 * @param e 原生的touch事件。touchstart、end、move ...
+	 * @param {TouchEvent} e 原生的touch事件。touchstart、end、move ...
 	 */
 	Ycc.TouchLifeTracer.prototype.syncTouches = function (e) {
 		this.touches = [];
@@ -3424,20 +3556,42 @@ Ycc.prototype.createCacheCtx = function (options) {
 		var touches=[];
 		touches = e.touches;
 		for(i=0;i<touches.length;i++){
+			touches[i].pageX = touches[i].pageX || touches[i].x;
+			touches[i].pageY = touches[i].pageY || touches[i].y;
+			touches[i].x = touches[i].x || touches[i].pageX;
+			touches[i].y = touches[i].y || touches[i].pageY;
+
+			touches[i].clientX = touches[i].clientX || touches[i].x;
+			touches[i].clientY = touches[i].clientY || touches[i].y;
 			this.touches.push(touches[i]);
 		}
 		touches = e.changedTouches;
-		for(i=0;i<e.changedTouches.length;i++){
+		for(i=0;i<touches.length;i++){
+			touches[i].pageX = touches[i].pageX || touches[i].x;
+			touches[i].pageY = touches[i].pageY || touches[i].y;
+			touches[i].x = touches[i].x || touches[i].pageX;
+			touches[i].y = touches[i].y || touches[i].pageY;
+			touches[i].clientX = touches[i].clientX || touches[i].x;
+			touches[i].clientY = touches[i].clientY || touches[i].y;
 			this.changedTouches.push(touches[i]);
 		}
-		touches = e.targetTouches;
-		for(i=0;i<e.targetTouches.length;i++){
+		touches = e.targetTouches||e.touches; //wxapp没有targetTouches 用touches代替
+		for(i=0;i<touches.length;i++){
+			touches[i].pageX = touches[i].pageX || touches[i].x;
+			touches[i].pageY = touches[i].pageY || touches[i].y;
+			touches[i].x = touches[i].x || touches[i].pageX;
+			touches[i].y = touches[i].y || touches[i].pageY;
+			touches[i].clientX = touches[i].clientX || touches[i].x;
+			touches[i].clientY = touches[i].clientY || touches[i].y;
 			this.targetTouches.push(touches[i]);
 		}
 	};
 	
 	/**
 	 * 寻找移动过的接触点
+	 * @param {Touch[]} moveTouchEventList
+	 * @param {Touch} touch
+	 * @return {number}
 	 */
 	Ycc.TouchLifeTracer.prototype.indexOfTouchFromMoveTouchEventList = function (moveTouchEventList,touch) {
 		for(var i=0;i<moveTouchEventList.length;i++){
@@ -3458,6 +3612,22 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 
 (function (Ycc) {
+	
+	/**
+	 * @typedef {Object} Ycc.Gesture.EventData
+	 * @property {string} type - 事件类型
+	 * @property {null} target - 事件触发对象
+	 * @property {number} identifier - 生命周期ID
+	 * @property {number} clientX
+	 * @property {number} clientY
+	 * @property {number} pageX
+	 * @property {number} pageY
+	 * @property {number} screenX
+	 * @property {number} screenY
+	 * @property {number} force
+	 * @property {string} swipeDirection - 手势滑动方向
+	 * @property {number} createTime - 创建时间
+	 */
 	
 	/**
 	 *
@@ -3488,6 +3658,18 @@ Ycc.prototype.createCacheCtx = function (options) {
 		 * @private
 		 */
 		this._longTapTimeout = null;
+
+		/**
+		 * 多点触摸是否正处于接触中
+		 * @type {Bolean}
+		 * @private
+		 */
+		this.ismutiltouching = false;
+
+		/**
+		 * 生命追踪
+		 */
+		this.touchLifeTracer = null;
 		
 		this._init();
 	};
@@ -3513,6 +3695,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	Ycc.Gesture.prototype._initForMobile = function () {
 		var self = this;
 		var tracer = new Ycc.TouchLifeTracer({target:this.option.target});
+		this.touchLifeTracer = tracer;
 		// 上一次触摸、当前触摸
 		var preLife,curLife;
 		// 是否阻止事件
@@ -3530,6 +3713,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 			// 多个触摸点的情况
 			if(tracer.currentLifeList.length>1){
+				self.ismutiltouching = true;
 				// 判断是否启用多点触控
 				if(!self.option.useMulti) return;
 
@@ -3544,7 +3728,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 				curLife = tracer.currentLifeList[1];
 				return this;
 			}
-			
+			self.ismutiltouching = false;
 			// 只有一个触摸点的情况
 			prevent.tap = false;
 			prevent.swipe = false;
@@ -3560,6 +3744,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 			});
 			
 			if(tracer.currentLifeList.length>1){
+				self.ismutiltouching = true;
+
 				// 判断是否启用多点触控
 				if(!self.option.useMulti) return;
 				prevent.tap=true;
@@ -3568,13 +3754,18 @@ Ycc.prototype.createCacheCtx = function (options) {
 				self.triggerListener('multichange',preLife,curLife);
 				
 				var rateAndAngle = self.getZoomRateAndRotateAngle(preLife,curLife);
-
+				
 				if(Ycc.utils.isNum(rateAndAngle.rate)){
-					self.triggerListener('zoom',rateAndAngle.rate);
+					var e = self._createEventData(preLife.startTouchEvent,'zoom');
+					e.zoomRate = rateAndAngle.rate;
+					self.triggerListener('zoom',self._createEventData(e,'zoom'));
 					self.triggerListener('log','zoom triggered',rateAndAngle.rate);
 				}
 				if(Ycc.utils.isNum(rateAndAngle.angle)){
-					self.triggerListener('rotate',rateAndAngle.angle);
+					var e = self._createEventData(preLife.startTouchEvent,'rotate');
+					e.angle = rateAndAngle.angle;
+					self.triggerListener('rotate',self._createEventData(e,'rotate'));
+					// self.triggerListener('rotate',self._createEventData(preLife.startTouchEvent,'rotate'),rateAndAngle.angle);
 					self.triggerListener('log','rotate triggered',rateAndAngle.angle);
 				}
 				return this;
@@ -3582,6 +3773,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 			
 			// 只有一个触摸点的情况
 			if(life.moveTouchEventList.length>0){
+				self.ismutiltouching = false;
 				var firstMove = life.startTouchEvent;
 				var lastMove = Array.prototype.slice.call(life.moveTouchEventList,-1)[0];
 				// 如果触摸点按下期间存在移动行为，且移动距离大于10，则认为该操作不是tap、longtap
@@ -3594,13 +3786,16 @@ Ycc.prototype.createCacheCtx = function (options) {
 		};
 		tracer.onlifeend = function (life) {
 			self.triggerListener('dragend',self._createEventData(life.endTouchEvent,'dragend'));
+			self.ismutiltouching = true;
 
 			// 若某个触摸结束，当前触摸点个数为1，说明之前的操作为多点触控。这里发送多点触控结束事件
 			if(tracer.currentLifeList.length===1){
+				self.ismutiltouching = false;
 				return self.triggerListener('multiend',preLife,curLife);
 			}
 			
 			if(tracer.currentLifeList.length===0){
+				self.ismutiltouching = false;
 				
 				// 开始和结束时间在300ms内，认为是tap事件
 				if(!prevent.tap && life.endTime-life.startTime<300){
@@ -3808,7 +4003,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 构造筛选事件中的有用信息
 	 * @param event	{MouseEvent | TouchEvent}	鼠标事件或者触摸事件
 	 * @param [type] {String} 事件类型，可选
-	 * @return {{target: null, clientX: number, clientY: number, pageX: number, pageY: number, screenX: number, screenY: number, force: number}}
+	 * @return {Ycc.Gesture.EventData}
 	 * @private
 	 */
 	Ycc.Gesture.prototype._createEventData = function (event,type) {
@@ -3830,6 +4025,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 			 */
 			identifier:-1,
 			
+			// x、y兼容微信端，web端其值等于pageX、pageY
+			x:0,
+			y:0,
+
 			clientX:0,
 			clientY:0,
 			pageX:0,
@@ -3842,6 +4041,15 @@ Ycc.prototype.createCacheCtx = function (options) {
 			 * 手势滑动方向，此属性当且仅当type为swipe时有值
 			 */
 			swipeDirection:'',
+
+			/**
+			 * 缩放比例 仅当事件为zoom时可用
+			 */
+			zoomRate:1,
+			/**
+			 * 旋转角度 仅当事件为rotate时可用
+			 */
+			angle:0,
 
 			/**
 			 * 创建时间
@@ -3857,6 +4065,11 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 获取某个触摸点的swipe方向
+	 * @param {number} x1
+	 * @param {number} y1
+	 * @param {number} x2
+	 * @param {number} y2
+	 * @return {string}
 	 * @private
 	 */
 	Ycc.Gesture.prototype._getSwipeDirection = function (x1,y1,x2,y2) {
@@ -3865,9 +4078,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 获取缩放比例
-	 * @param preLife
-	 * @param curLife
-	 * @return {number}
+	 * @param {Ycc.TouchLifeTracer.TouchLife} preLife
+	 * @param {Ycc.TouchLifeTracer.TouchLife} curLife
+	 * @return {{rate: number, angle: number}}
 	 * @private
 	 */
 	Ycc.Gesture.prototype.getZoomRateAndRotateAngle = function (preLife, curLife) {
@@ -3901,7 +4114,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 	/**
 	 * 设置是否启用多点触控
-	 * @param enable
+	 * @param {boolean} enable
 	 */
 	Ycc.Gesture.prototype.enableMutiTouch = function (enable) {
 		this.option.useMulti = false;
@@ -3925,12 +4138,22 @@ Ycc.prototype.createCacheCtx = function (options) {
 	var layerIndex = 0;
 	
 	/**
+	 * @typedef {Object} Ycc.Layer.Config
+	 * @property {string} [name] - 图层名称
+	 * @property {'ui'|'tool'|'text'} [type='ui'] - 图层类型
+	 * @property {boolean} [enableEventManager=false] - 是否监听舞台事件
+	 * @property {boolean} [enableFrameEvent=false] - 是否接收每帧更新通知
+	 * @property {boolean} [show=true] - 是否显示
+	 * @property {boolean} [ghost=false] - 是否幽灵图层
+	 * @property {boolean} [useCache=false] - 是否使用独立缓存canvas
+	 */
+	
+	/**
 	 * 图层类。
 	 * 每新建一个图层，都会新建一个canvas元素。
 	 * 每个图层都跟这个canvas元素绑定。
-	 * @param yccInstance	{Ycc} ycc实例
-	 * @param option		{object} 配置项
-	 * @param option.enableEventManager		{boolean} 是否监听舞台事件
+	 * @param {Ycc} yccInstance ycc实例
+	 * @param {Ycc.Layer.Config} [option] 配置项
 	 *
 	 * @constructor
 	 * @extends Ycc.Listener
@@ -4087,7 +4310,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 释放layer的内存，等待GC
 	 * 将所有引用属性置为null
-	 * @param layer
+	 * @param {Ycc.Layer} layer
 	 */
 	Ycc.Layer.release = function (layer) {
 		Ycc.Listener.release(layer);
@@ -4140,7 +4363,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 初始化
-	 * @return {null}
+	 * @return {void}
 	 */
 	Ycc.Layer.prototype.init = function () {
 		var self = this;
@@ -4323,8 +4546,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 设置画布所有的属性
-	 * @param props 属性map
-	 * @param ctx	绘图环境，可选参数，默认为上屏canvas的绘图环境
+	 * @param {object} [props] 属性map
+	 * @param {CanvasRenderingContext2D} [ctx] 绘图环境，可选参数，默认为上屏canvas的绘图环境
 	 * @private
 	 */
 	Ycc.Layer.prototype._setCtxProps = function (props,ctx) {
@@ -4394,8 +4617,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 添加一个UI图形至图层，如果设置了beforUI，该UI会被添加至该UI之前
-	 * @param ui {Ycc.UI}	UI图形
-	 * @param beforeUI {Ycc.UI|null}	UI图形
+	 * @param {Ycc.UI.Base} ui UI图形
+	 * @param {Ycc.UI.Base} [beforeUI] UI图形
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.Layer.prototype.addUI = function (ui,beforeUI) {
 		var self = this;
@@ -4419,7 +4643,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 删除图层内的某个UI图形，及其子UI
-	 * @param ui
+	 * @param {Ycc.UI.Base} ui
+	 * @return {boolean}
 	 */
 	Ycc.Layer.prototype.removeUI = function (ui) {
 		if(!ui) return false;
@@ -4438,7 +4663,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 渲染Layer中的所有UI，
 	 * <br>直接将UI的离屏canvas绘制至上屏canvas。
 	 *
-	 * @param forceUpdate {boolean}	是否强制更新
+	 * @param {boolean} [forceUpdate] 是否强制更新
 	 * 若强制更新，所有图层会强制更新缓存
 	 * 若非强制更新，对于使用缓存的图层，只会绘制缓存至舞台
 	 */
@@ -4450,7 +4675,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 重绘图层。
 	 * <br>直接将UI的离屏canvas绘制至上屏canvas。
 	 *
-	 * @param forceUpdate {boolean}	是否强制更新
+	 * @param {boolean} [forceUpdate] 是否强制更新
 	 * 若强制更新，所有图层会强制更新缓存
 	 * 若非强制更新，对于使用缓存的图层，只会绘制缓存至舞台
 	 */
@@ -4465,7 +4690,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制缓存区域至上屏canvas
-	 * @param forceUpdate {boolean}	是否强制更新，若为true，绘制之前先重新绘制缓存
+	 * @param {boolean} [forceUpdate] 是否强制更新，若为true，绘制之前先重新绘制缓存
 	 */
 	Ycc.Layer.prototype.renderCacheToStage = function (forceUpdate) {
 		if(!this.useCache) return;
@@ -4490,9 +4715,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 获取图层中某个点所对应的最上层UI，最上层UI根据层级向下遍历，取层级最深的可见UI。
-	 * @param dot {Ycc.Math.Dot}	点坐标，为舞台的绝对坐标
-	 * @param uiIsShow {Boolean}	是否只获取显示在舞台上的UI，默认为true
-	 * @return {UI}
+	 * @param {Ycc.Math.Dot} dot 点坐标，为舞台的绝对坐标
+	 * @param {boolean} [uiIsShow=true] 是否只获取显示在舞台上的UI，默认为true
+	 * @return {Ycc.UI.Base|null}
 	 */
 	Ycc.Layer.prototype.getUIFromPointer = function (dot,uiIsShow) {
 		uiIsShow = Ycc.utils.isBoolean(uiIsShow)?uiIsShow:true;
@@ -4542,8 +4767,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 获取图层中某个点所对应的所有UI，无论显示不显示，无论是否是幽灵，都会获取。
-	 * @param dot {Ycc.Math.Dot}	点坐标，为舞台的绝对坐标
-	 * @return {Ycc.UI[]}
+	 * @param {Ycc.Math.Dot} dot 点坐标，为舞台的绝对坐标
+	 * @param {object} [options]
+	 * @return {Ycc.UI.Base[]}
 	 */
 	Ycc.Layer.prototype.getUIListFromPointer = function (dot) {
 		var self = this;
@@ -4560,8 +4786,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 根据图层坐标，将图层内某个点的相对坐标（相对于图层），转换为舞台的绝对坐标
-	 * @param dotOrArr	{Ycc.Math.Dot | Ycc.Math.Dot[]}
-	 * @return {Ycc.Math.Dot | Ycc.Math.Dot[]}
+	 * @param {Ycc.Math.Dot|Ycc.Math.Dot[]} dotOrArr
+	 * @return {Ycc.Math.Dot|Ycc.Math.Dot[]}
 	 */
 	Ycc.Layer.prototype.transformToAbsolute = function (dotOrArr) {
 		var res = null;
@@ -4584,8 +4810,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 根据图层坐标，将某个点的绝对坐标，转换为图层内的相对坐标
-	 * @param dotOrArr	{Ycc.Math.Dot | Ycc.Math.Dot[]}
-	 * @return {Ycc.Math.Dot | Ycc.Math.Dot[]}
+	 * @param {Ycc.Math.Dot|Ycc.Math.Dot[]} dotOrArr
+	 * @return {Ycc.Math.Dot|Ycc.Math.Dot[]}
 	 */
 	Ycc.Layer.prototype.transformToLocal = function (dotOrArr) {
 		var res = null;
@@ -4608,7 +4834,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制所有UI至某个绘图环境
-	 * @param ctx
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	Ycc.Layer.prototype.renderAllToCtx = function (ctx) {
 		var self = this;
@@ -4657,7 +4883,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 合并需要合并的最小区域
-	 * @param absolutePositionRect	当前UI的绝对坐标范围
+	 * @param {Ycc.Math.Rect} absolutePositionRect 当前UI的绝对坐标范围
+	 * @return {Ycc.Math.Rect}
 	 * @private
 	 */
 	Ycc.Layer.prototype._mergeCtxCacheRect = function (absolutePositionRect) {
@@ -4695,6 +4922,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 更新图层的缓存绘图环境
+	 * @return {void}
 	 */
 	Ycc.Layer.prototype.updateCache = function () {
 		// 判断是否使用缓存
@@ -4707,6 +4935,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 清空缓存画布、缓存区域
+	 * @return {void}
 	 */
 	Ycc.Layer.prototype.clearCache = function () {
 		var w = this.ctxCache.canvas.width;
@@ -4727,7 +4956,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * Ycc的图层管理类。每个图层管理器都与一个canvas舞台绑定。
-	 * @param yccInstance {Ycc}		ycc实例
+	 * @param {Ycc} yccInstance ycc实例
 	 * @constructor
 	 */
 	Ycc.LayerManager = function (yccInstance) {
@@ -4766,7 +4995,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 新建图层
-	 * @param config
+	 * @param {Ycc.Layer.Config} config
+	 * @return {Ycc.Layer}
 	 */
 	Ycc.LayerManager.prototype.newLayer = function (config) {
 		var layer = new Ycc.Layer(this.yccInstance,config);
@@ -4776,7 +5006,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 删除图层。
-	 * @param layer
+	 * @param {Ycc.Layer} layer
+	 * @return {Ycc.Layer}
 	 */
 	Ycc.LayerManager.prototype.deleteLayer = function (layer) {
 		var layerList = this.yccInstance.layerList;
@@ -4791,6 +5022,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 删除所有图层
+	 * @return {void}
 	 */
 	Ycc.LayerManager.prototype.deleteAllLayer = function () {
 		for(var i=0;i<this.yccInstance.layerList.length;i++){
@@ -4806,7 +5038,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 重新将所有图层绘制至舞台。不显示的图层也会更新。
-	 * @param forceUpdate {boolean}	是否强制更新
+	 * @param {boolean} [forceUpdate] 是否强制更新
 	 * 若强制更新，所有图层会强制更新缓存
 	 * 若非强制更新，对于使用缓存的图层，只会绘制缓存至舞台
 	 */
@@ -4837,7 +5069,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 只允许某一个图层接收舞台事件
-	 * @param layer	{Layer}		允许接收事件的图层
+	 * @param {Ycc.Layer} layer 允许接收事件的图层
+	 * @return {Ycc.LayerManager|boolean}
 	 */
 	Ycc.LayerManager.prototype.enableEventManagerOnly = function (layer) {
 		if(!layer) return false;
@@ -4850,7 +5083,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 允许所有图层接收舞台事件
-	 * @param enable
+	 * @param {boolean} enable
 	 * @return {Ycc.LayerManager}
 	 */
 	Ycc.LayerManager.prototype.enableEventManagerAll = function (enable) {
@@ -4863,8 +5096,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 根据json数组绘制所有图层
-	 * @param jsonArray {Array} json数组，示例：[{option,ui[]}]
-	 * @return {*}
+	 * @param {Array} jsonArray json数组，示例：[{option,ui[]}]
 	 */
 	Ycc.LayerManager.prototype.renderAllLayerByJsonArray = function (jsonArray) {
 		if(!Ycc.utils.isArray(jsonArray)){
@@ -4906,8 +5138,15 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 (function (Ycc){
 	/**
+	 * @typedef {Object} Ycc.PhotoManager.Photo
+	 * @property {ImageData} imageData
+	 * @property {Date} createTime
+	 * @property {number} id
+	 */
+
+	/**
 	 * 照片数据结构类
-	 * @param imageData
+	 * @param {ImageData} imageData
 	 * @constructor
 	 */
 	var Photo = function(imageData) {
@@ -4924,15 +5163,19 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 */
 	Ycc.PhotoManager = function (yccInstance) {
 
+		/** @type {Ycc} */
 		this.yccInstance = yccInstance;
 
+		/** @type {CanvasRenderingContext2D} */
 		this.ctx = yccInstance.ctx;
 		
+		/** @type {Ycc.PhotoManager.Photo[]} */
 		this._photos = [];
 	};
 	
 	/**
 	 * 保存快照，即保存当前的原子图形渲染步骤
+	 * @return {Ycc.PhotoManager}
 	 */
 	Ycc.PhotoManager.prototype.takePhoto = function () {
 		this._photos.push(new Photo(this.ctx.getImageData(0,0,this.yccInstance.getStageWidth(),this.yccInstance.getStageHeight())));
@@ -4941,15 +5184,15 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 获取保存的历史照片
-	 * @returns {Array}
+	 * @returns {Ycc.PhotoManager.Photo[]}
 	 */
 	Ycc.PhotoManager.prototype.getHistoryPhotos = function () {
 		return this._photos;
 	};
 	/**
 	 * 显示照片
-	 * @param photo		{Photo}
-	 * @returns 		{Photo}
+	 * @param {Ycc.PhotoManager.Photo} photo
+	 * @returns {Ycc.PhotoManager.Photo}
 	 */
 	Ycc.PhotoManager.prototype.showPhoto = function (photo) {
 		this.ctx.putImageData(photo.imageData,0,0);
@@ -4959,7 +5202,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 显示最后一次保存的快照
-	 * @returns {boolean}
+	 * @returns {Ycc.PhotoManager.Photo|false}
 	 */
 	Ycc.PhotoManager.prototype.showLastPhoto = function () {
 		var len = this._photos.length;
@@ -4973,8 +5216,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 删除照片
-	 * @param photoId	照片的id
-	 * @returns {*}
+	 * @param {number} photoId	照片的id
+	 * @returns {Ycc.PhotoManager.Photo|false}
 	 */
 	Ycc.PhotoManager.prototype.delPhotoById = function (photoId) {
 		var tempPhotos = this._photos.slice(0);
@@ -5027,7 +5270,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * UI类，提供绘图基本的原子图形和组合图形。
 	 * 每个UI类的对象都跟一个Ycc绑定。
 	 *
-	 * @param yccInstance	{Ycc}
+	 * @param {Ycc} yccInstance
 	 * @constructor
 	 */
 	Ycc.UI = function(yccInstance){
@@ -5067,9 +5310,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 ******************************************************************************/
 	/**
 	 * 文字
-	 * @param positionDot
-	 * @param content
-	 * @param [fill]
+	 * @param {number[]} positionDot
+	 * @param {string} content
+	 * @param {boolean} [fill]
 	 * @returns {Ycc.UI}
 	 */
 	Ycc.UI.prototype.text = function (positionDot,content,fill) {
@@ -5084,8 +5327,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 画线
-	 * @param dot1
-	 * @param dot2
+	 * @param {number[]} dot1
+	 * @param {number[]} dot2
 	 * @returns {Ycc.UI}
 	 */
 	Ycc.UI.prototype.line = function (dot1, dot2) {
@@ -5102,9 +5345,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 矩形
-	 * @param left_top_dot
-	 * @param right_bottom_dot
-	 * @param fill
+	 * @param {number[]} left_top_dot
+	 * @param {number[]} right_bottom_dot
+	 * @param {boolean} [fill]
 	 */
 	Ycc.UI.prototype.rect=function (left_top_dot,right_bottom_dot,fill){
 		this.ctx.save();
@@ -5122,11 +5365,11 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 椭圆
-	 * @param centrePoint	{Dot}		椭圆中心点
-	 * @param width			{Number}	长半轴
-	 * @param height		{Number}	短半轴
-	 * @param rotateAngle	{Number}	旋转角
-	 * @param fill			{Boolean}	是否填充
+	 * @param {number[]} centrePoint		椭圆中心点
+	 * @param {number} width			长半轴
+	 * @param {number} height			短半轴
+	 * @param {number} rotateAngle		旋转角
+	 * @param {boolean} fill			是否填充
 	 */
 	Ycc.UI.prototype.ellipse = function(centrePoint,width,height,rotateAngle,fill) {
 		
@@ -5156,11 +5399,11 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 圆弧
-	 * @param centrePoint			圆心
-	 * @param r						半径
-	 * @param startAngle			起始角
-	 * @param endAngle				结束角
-	 * @param [counterclockwise]	方向
+	 * @param {number[]} centrePoint			圆心
+	 * @param {number} r						半径
+	 * @param {number} startAngle			起始角
+	 * @param {number} endAngle				结束角
+	 * @param {boolean} [counterclockwise]	方向
 	 */
 	Ycc.UI.prototype.circleArc = function (centrePoint, r,startAngle,endAngle,counterclockwise) {
 		this.ctx.save();
@@ -5182,12 +5425,12 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 扇形
-	 * @param centrePoint			圆心
-	 * @param r						半径
-	 * @param startAngle			起始角
-	 * @param endAngle				结束角
-	 * @param [fill]				是否填充
-	 * @param [counterclockwise]	方向
+	 * @param {number[]} centrePoint			圆心
+	 * @param {number} r						半径
+	 * @param {number} startAngle			起始角
+	 * @param {number} endAngle				结束角
+	 * @param {boolean} [fill]				是否填充
+	 * @param {boolean} [counterclockwise]	方向
 	 */
 	Ycc.UI.prototype.sector = function (centrePoint, r,startAngle,endAngle,fill,counterclockwise) {
 		this.ctx.save();
@@ -5206,7 +5449,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 根据多个点画折线，可以用此方法实现跟随鼠标
-	 * @param pointList		{Array}		Dot数组，即二维数组
+	 * @param {number[][]} pointList		Dot数组，即二维数组
 	 */
 	Ycc.UI.prototype.foldLine = function (pointList) {
 		if(pointList.length<2) return console.error("Error: 参数错误！");
@@ -5224,9 +5467,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 圆
-	 * @param centrePoint	圆心
-	 * @param r				半径
-	 * @param fill			是否填充
+	 * @param {number[]} centrePoint	圆心
+	 * @param {number} r				半径
+	 * @param {boolean} fill			是否填充
 	 */
 	Ycc.UI.prototype.circle = function(centrePoint, r, fill) {
 		this.ellipse(centrePoint,r,r,0,fill);
@@ -5235,8 +5478,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制图片
-	 * @param img				{Image}		图片路径
-	 * @param left_top_dot		{Array}		左上角坐标
+	 * @param {HTMLImageElement} img				图片路径
+	 * @param {number[]} [left_top_dot]		左上角坐标
 	 */
 	Ycc.UI.prototype.image = function (img,left_top_dot){
 		var self = this;
@@ -5283,8 +5526,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 ******************************************************************************/
 	/**
 	 * 缩放绘图，对之后的所有操作都有效
-	 * @param scaleX
-	 * @param scaleY
+	 * @param {number} scaleX
+	 * @param {number} scaleY
 	 * @returns {Ycc.UI}
 	 */
 	Ycc.UI.prototype.scale = function (scaleX, scaleY) {
@@ -5294,6 +5537,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 	/**
 	 * 清除画布
+	 * @return {Ycc.UI}
 	 */
 	Ycc.UI.prototype.clear=function () {
 		var defaultSet = {
@@ -5353,6 +5597,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 *
 	 * @constructor
 	 * @extends Ycc.Listener Ycc.Tree
+	 * @param {object} option
 	 */
 	Ycc.UI.Base = function (option) {
 		Ycc.Listener.call(this);
@@ -5378,13 +5623,13 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 绘图环境
-		 * @type {null}
+		 * @type {CanvasRenderingContext2D|null}
 		 */
 		this.ctx = null;
 		
 		/**
 		 * 缓存的绘图环境
-		 * @type {null}
+		 * @type {CanvasRenderingContext2D|null}
 		 */
 		this.ctxCache = null;
 		
@@ -5579,7 +5824,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 在某个图层中初始化UI
-	 * @param layer	{Layer}		图层
+	 * @param {Ycc.Layer} layer		图层
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.init = function (layer) {
 		Ycc.utils.isFn(this._beforeInit) && this._beforeInit();
@@ -5605,6 +5851,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.computeUIProps = function () {
 	
@@ -5613,6 +5860,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 渲染容纳区rect的背景色
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
+	 * @param {Ycc.Math.Rect} absoluteRect	容纳区的绝对位置
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.renderRectBgColor = function () {
 		var dots = this.getAbsolutePositionPolygon();
@@ -5635,6 +5884,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 渲染容纳区rect的边框
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
+	 * @param {Ycc.Math.Rect} absoluteRect	容纳区的绝对位置
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.renderRectBorder = function () {
 		// console.log('绘制边框');
@@ -5647,7 +5898,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		ctx.save();
 		ctx.setLineDash&&ctx.setLineDash([0]);
 		ctx.strokeStyle = this.rectBorderColor;
-		ctx.strokeWidth = this.rectBorderWidth;
+		ctx.lineWidth = this.rectBorderWidth;
 		ctx.beginPath();
 		ctx.moveTo(dots[0].x*this.dpi,dots[0].y*this.dpi);
 		for(var i=1;i<dots.length-1;i++)
@@ -5660,7 +5911,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 绘制UI平移、旋转之前的位置，用虚线绘制
 	 * 需要子UI重载
-	 * @param [ctx]	绘图环境，非必传
+	 * @param {CanvasRenderingContext2D} [ctx]	绘图环境，非必传
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.renderDashBeforeUI = function (ctx) {
 	
@@ -5670,6 +5922,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 删除自身。
 	 * 若子类包含多个UI，需要重载
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.removeSelf = function () {
 		this.belongTo.removeUI(this);
@@ -5679,7 +5932,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 添加子ui
-	 * @param ui
+	 * @param {Ycc.UI.Base} ui
 	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.Base.prototype.addChild = function (ui) {
@@ -5691,7 +5944,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 删除子ui
-	 * @param ui
+	 * @param {Ycc.UI.Base} ui
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.Base.prototype.removeChild = function (ui) {
 		this.removeChildTree(ui);
@@ -5704,6 +5958,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 先缩放、再旋转。
 	 * @todo 子类渲染前需要调用此方法
 	 * @todo 多边形替换rect后，此方法废弃，不再调用
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.scaleAndRotate = function () {
 		// 坐标系缩放
@@ -5733,7 +5988,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 判断当前区域在某个区域外
-	 * @param rect {Ycc.Math.Rect}
+	 * @param {Ycc.Math.Rect} rect
+	 * @return {boolean}
 	 */
 	Ycc.UI.Base.prototype.isOutOfRect = function (rect) {
 		var x = rect.x;
@@ -5751,7 +6007,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 递归释放内存，等待GC
 	 * 将所有引用属性设为null
-	 * @param uiNode	ui节点
+	 * @static
+	 * @param {Ycc.UI.Base} uiNode	ui节点
 	 */
 	Ycc.UI.release = function (uiNode) {
 		
@@ -5845,6 +6102,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 渲染至绘图环境。
 	 * 		<br> 注意：重写此方法时，不能修改UI类的属性。修改属性，应该放在computeUIProps方法内。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.render = function () {
 	
@@ -5853,8 +6111,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 绘制UI的容器（红色小方框）
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
-	 * @param absoluteRect {Ycc.Math.Rect}	UI的绝对坐标
+	 * @param {Ycc.Math.Rect} absoluteRect	UI的绝对坐标
 	 * @private
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype._renderContainer = function (absoluteRect) {
 		var rect = absoluteRect;
@@ -5875,7 +6134,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 此方法不允许重载、覆盖
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
 	 * @private
-	 * @return {renderError.message|null}
+	 * @return {{message:string}|null}
 	 */
 	Ycc.UI.Base.prototype.__render = function () {
 		this.triggerListener('computestart',new Ycc.Event("computestart"));
@@ -5916,6 +6175,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * UI类渲染前的处理
 	 * @private
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype._processBeforeRender = function(){
 		this.triggerListener('renderstart',new Ycc.Event("renderstart"));
@@ -5928,6 +6188,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * UI类渲染后的处理
 	 * @private
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype._processAfterRender = function(){
 		// 取消设置的透明度
@@ -5937,8 +6198,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 	/**
 	 * 给定宽度，获取能容纳的最长单行字符串
-	 * @param content	{string} 文本内容
-	 * @param width		{number} 指定宽度
+	 * @param {string} content	文本内容
+	 * @param {number} width	指定宽度
 	 * @return {string}
 	 */
 	Ycc.UI.Base.prototype.getMaxContentInWidth = function (content, width) {
@@ -5960,8 +6221,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 合并参数，只会合并对象中已存在的key
-	 * @param option
-	 * @return {Ycc.UI}
+	 * @param {object} option
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.Base.prototype.extend = function (option) {
 		option = option || {};
@@ -5976,7 +6237,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 克隆ui
-	 * @return {Ycc.UI}
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.Base.prototype.clone = function () {
 		var ui = new this.yccClass();
@@ -5986,6 +6247,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 获取UI平移、旋转之后位置的多边形区域，子UI需覆盖此方法
+	 * @return {Ycc.Math.Dot[]}
 	 */
 	Ycc.UI.Base.prototype.getAbsolutePositionPolygon = function () {};
 	
@@ -6002,7 +6264,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 获取UI的绝对坐标，主要考虑图层坐标
 	 * 注：此区域未经过旋转
-	 * @return {Ycc.Math.Rect}
+	 * @return {Ycc.Math.Dot}
 	 */
 	Ycc.UI.Base.prototype.getAbsolutePosition = function(){
 		var pos = new Ycc.Math.Rect();
@@ -6084,6 +6346,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 获取当前UI在树结构中的深度
+	 * @return {number}
 	 */
 	Ycc.UI.Base.prototype.getDeepLevel = function () {
 		return this.getParentList().length+1;
@@ -6091,8 +6354,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 根据当前的锚点、旋转角度获取某个点的转换之后的坐标
-	 * @param dot {Ycc.Math.Dot|Ycc.Math.Dot[]}	需要转换的点，该点为相对坐标，相对于当前UI的父级
-	 * @return {Ycc.Math.Dot}		转换后的点，该点为绝对坐标
+	 * @param {Ycc.Math.Dot|Ycc.Math.Dot[]} dot	需要转换的点，该点为相对坐标，相对于当前UI的父级
+	 * @return {Ycc.Math.Dot|Ycc.Math.Dot[]}		转换后的点，该点为绝对坐标
 	 */
 	Ycc.UI.Base.prototype.transformByRotate = function (dot) {
 		var self = this;
@@ -6123,9 +6386,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 设置当前环境画布的所有的属性
-	 * @param props 属性map
-	 * @param ctx	绘图环境，可选参数，默认为离屏canvas的绘图环境
+	 * @param {object} [props] 属性map
+	 * @param {CanvasRenderingContext2D} [ctx]	绘图环境，可选参数，默认为离屏canvas的绘图环境
 	 * @private
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype._setCtxProps = function (props,ctx) {
 		var self = this;
@@ -6154,11 +6418,11 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 冒泡触发UI的事件
-	 * @param type
-	 * @param x
-	 * @param y
-	 * @param originEvent ycc事件所对应的原始事件
-	 * @return {Ycc.UI[]}  返回已触发事件的UI列表
+	 * @param {string} type
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {Event} [originEvent] ycc事件所对应的原始事件
+	 * @return {Ycc.UI.Base[]}  返回已触发事件的UI列表
 	 */
 	Ycc.UI.Base.prototype.triggerUIEventBubbleUp = function(type,x,y,originEvent) {
 		var ui = this;
@@ -6196,9 +6460,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 位置坐标x、y为只读属性，且为相对坐标，默认取多边形的第一个顶点坐标
 	 * @constructor
 	 * @extends Ycc.UI.Base
-	 * @param option    			{object}        	所有可配置的配置项
-	 * @param option.fill 			{boolean}			是否填充绘制，false表示描边绘制
-	 * @param option.coordinates  	{Ycc.Math.Dot[]}    多边形点坐标的数组，为保证图形能够闭合，起点和终点必须相等。注意：点列表的坐标为相对坐标
+	 * @param {object} option    		所有可配置的配置项
+	 * @param {boolean} option.fill 		是否填充绘制，false表示描边绘制
+	 * @param {Ycc.Math.Dot[]} option.coordinates  多边形点坐标的数组，为保证图形能够闭合，起点和终点必须相等。注意：点列表的坐标为相对坐标
 	 */
 	Ycc.UI.Polygon = function Polygon(option) {
 		option = option || {};
@@ -6243,7 +6507,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 多边形点坐标的数组，为保证图形能够闭合，起点和终点必须相等
-		 * @type {null}
+		 * @type {Ycc.Math.Dot[]}
 		 */
 		this.coordinates=option.coordinates||[];
 		
@@ -6258,6 +6522,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
+	 * @return {void}
 	 * @override
 	 */
 	Ycc.UI.Polygon.prototype.computeUIProps = function () {
@@ -6269,7 +6534,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 渲染至ctx
-	 * @param ctx
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.Polygon.prototype.render = function (ctx) {
 		var self = this;
@@ -6296,7 +6561,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 只绘制路径，不填充、不描边
 	 * 继承的子类若不是多边形，需要重载此方法
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
-	 * @param ctx 离屏canvas的绘图环境
+	 * @return {void}
 	 */
 	Ycc.UI.Polygon.prototype.renderPath = function () {
 		if(this.coordinates.length===0) return;
@@ -6331,7 +6596,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 获取UI的绝对坐标，只计算图层坐标和UI的位置坐标x、y
 	 * 不考虑UI的缩放和旋转，缩放旋转可通过其他方法转换
-	 * @param [pos] {Ycc.Math.Dot}	获取到的位置对象，非必传
+	 * @param {Ycc.Math.Dot} [pos]	获取到的位置对象，非必传
 	 * @return {Ycc.Math.Dot}
 	 * @override
 	 */
@@ -6376,6 +6641,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制旋转缩放之前的UI
+	 * @param {CanvasRenderingContext2D} [ctx]
+	 * @return {void}
 	 * @override
 	 */
 	Ycc.UI.Polygon.prototype.renderDashBeforeUI = function (ctx) {
@@ -6409,8 +6676,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 方法一：经过该点的水平射线与多边形的焦点数，即Ray-casting Algorithm
 	 * 方法二：某个点始终位于多边形逆时针向量的左侧、或者顺时针方向的右侧即可判断，算法名忘记了
 	 * 此方法采用方法一，并假设该射线平行于x轴，方向为x轴正方向
-	 * @param dot {Ycc.Math.Dot} 需要判断的点，绝对坐标
-	 * @param noneZeroMode {Number} 是否noneZeroMode 1--启用 2--关闭 默认启用
+	 * @param {Ycc.Math.Dot} dot 需要判断的点，绝对坐标
+	 * @param {number} [noneZeroMode] 是否noneZeroMode 1--启用 2--关闭 默认启用
 	 * 		从这个点引出一根“射线”，与多边形的任意若干条边相交，计数初始化为0，若相交处被多边形的边从左到右切过，计数+1，若相交处被多边形的边从右到左切过，计数-1，最后检查计数，如果是0，点在多边形外，如果非0，点在多边形内
 	 * @return {boolean}
 	 */
@@ -6489,14 +6756,14 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 椭圆
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
-	 * @param option.fill=false {boolean}	填充or描边
-	 * @param option.color=black {string} 圆的颜色
-	 * @param option.point {Ycc.Math.Dot} 圆心位置
-	 * @param option.width=20 {number} 长轴
-	 * @param option.height=10 {number} 短轴
-	 * @param option.angle=0	{number} 椭圆绕其中心的自转角度
+	 * @param {object} option		所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。
+	 * @param {boolean} option.fill=false	填充or描边
+	 * @param {string} option.color=black 圆的颜色
+	 * @param {Ycc.Math.Dot} option.point 圆心位置
+	 * @param {number} option.width=20 长轴
+	 * @param {number} option.height=10 短轴
+	 * @param {number} option.angle=0 椭圆绕其中心的自转角度
 	 * 		注：通过rotation设置的旋转角度只会旋转椭圆的中心点，此处的angle是将椭圆本身围绕中心点旋转。
 	 * 		此处的理解，可以结合地球绕太阳旋转，angle表示自转角度，rotation表示公转角度。
 	 * @constructor
@@ -6533,6 +6800,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Ellipse.prototype.computeUIProps = function () {
 		var x=this.point.x,
@@ -6562,6 +6830,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.Ellipse.prototype.render = function () {
 		var width = this.width*this.dpi,
@@ -6603,9 +6872,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 判断是否在椭圆内
-	 * @param dot	绝对坐标
-	 * @param noneZeroMode
+	 * @param {Ycc.Math.Dot} dot	绝对坐标
+	 * @param {number} [noneZeroMode]
 	 * @override
+	 * @return {boolean}
 	 */
 	Ycc.UI.Ellipse.prototype.containDot = function (dot,noneZeroMode) {
 		var point = this.transformByRotate(this.point);
@@ -6688,6 +6958,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
+	 * @return {void}
 	 * @override
 	 */
 	Ycc.UI.Circle.prototype.computeUIProps = function () {
@@ -6707,6 +6978,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 * @override
 	 */
 	Ycc.UI.Circle.prototype.render = function () {
@@ -6768,8 +7040,9 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 判断是否在圆内
-	 * @param dot	绝对坐标
-	 * @param noneZeroMode
+	 * @param {Ycc.Math.Dot} dot	绝对坐标
+	 * @param {number} [noneZeroMode]
+	 * @return {boolean}
 	 * @override
 	 */
 	Ycc.UI.Circle.prototype.containDot = function (dot,noneZeroMode) {
@@ -6792,22 +7065,22 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 图片UI
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
-	 * @param option.fillMode=none {string} 填充方式
+	 * @param {object} option		所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。
+	 * @param {string} [option.fillMode="none"] 填充方式
 	 * 		<br> none 			-- 无填充方式。左上角对齐，超出隐藏，不修改rect大小。
 	 * 		<br> repeat 		-- 重复。左上角对齐，重复平铺图片，不修改rect大小，超出隐藏。
 	 * 		<br> scale 			-- 缩放。左上角对齐，缩放至整个rect区域，不修改rect大小。
 	 * 		<br> scaleRepeat 	-- 先缩放再重复。左上角对齐，缩放至某个rect区域，再重复填充整个rect区域，不修改rect大小。
 	 * 		<br> auto 			-- 自动。左上角对齐，rect大小自动适配图片。若图片超出rect，会动态修改rect大小。
 	 * 		<br> scale9Grid 	-- 9宫格模式填充。左上角对齐，中间区域将拉伸，不允许图片超出rect区域大小，不会修改rect大小。
-	 * @param option.res	{Image}		需要填充的图片资源。注：必须已加载完成。
-	 * @param option.mirror	{Number}	将图片镜像绘制方式
+	 * @param {HTMLImageElement|null} option.res		需要填充的图片资源。注：必须已加载完成。
+	 * @param {number} [option.mirror=0]	将图片镜像绘制方式
 	 * 		<br> 0		--		无
 	 * 		<br> 1		--		上下颠倒
 	 * 		<br> 2		--		左右翻转
 	 * 		<br> 3		--		上下左右颠倒
-	 * @param option.scale9GridRect	{Ycc.Math.Rect}	9宫格相对于res图片的中间区域，当且仅当fillMode为scale9Grid有效。
+	 * @param {Ycc.Math.Rect|null} option.scale9GridRect	9宫格相对于res图片的中间区域，当且仅当fillMode为scale9Grid有效。
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -6828,7 +7101,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 		/**
 		 * 需要填充的图片资源。注：必须已加载完成。
-		 * @type {Image}
+		 * @type {HTMLImageElement|null}
 		 */
 		this.res = null;
 		
@@ -6850,7 +7123,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 缩放重复模式下，原始图片的缩放区域，当且仅当fillMode为scaleRepeat有效。
-		 * @type {null}
+		 * @type {Ycc.Math.Rect|null}
 		 */
 		this.scaleRepeatRect = null;
 		
@@ -6866,6 +7139,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Image.prototype.computeUIProps = function () {
 		if(this.fillMode === "auto"){
@@ -6908,6 +7182,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制
+	 * @return {void}
 	 */
 	Ycc.UI.Image.prototype.render = function () {
 		var ctx = this.ctxCache;
@@ -7065,14 +7340,14 @@ Ycc.prototype.createCacheCtx = function (options) {
 (function (Ycc) {
 	/**
 	 * 图片序列帧动画的UI
-	 * @param option				{object}		所有可配置的配置项
-	 * @param option.rect			{Ycc.Math.Rect}	容纳区。会将显示区的内容缩放至这个区域。
-	 * @param option.res			{Image}			需要填充的图片资源。注：必须已加载完成。
-	 * @param option.frameSpace		{Number}		序列帧播放的帧间隔。默认为1，即每帧都更换图片
-	 * @param option.firstFrameRect	{Number}		首帧的显示区。该区域相对于原始图片，且之后帧显示区将按照这个区域的width递推
-	 * @param option.frameRectCount	{Number}		帧显示区的递推个数。该个数相对于原始图片，表示之后帧显示区的递推个数
-	 * @param option.autoplay		{Boolean}		自动播放
-	 * @param option.mirror			{Number}		将图片镜像绘制方式
+	 * @param {object} option				所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect			容纳区。会将显示区的内容缩放至这个区域。
+	 * @param {HTMLImageElement|null} option.res			需要填充的图片资源。注：必须已加载完成。
+	 * @param {number} [option.frameSpace=1]		序列帧播放的帧间隔。默认为1，即每帧都更换图片
+	 * @param {Ycc.Math.Rect|null} option.firstFrameRect		首帧的显示区。该区域相对于原始图片，且之后帧显示区将按照这个区域的width递推
+	 * @param {number} [option.frameRectCount=1]		帧显示区的递推个数。该个数相对于原始图片，表示之后帧显示区的递推个数
+	 * @param {boolean} [option.autoplay=false]		自动播放
+	 * @param {number} [option.mirror=0]		将图片镜像绘制方式
 	 * 		<br> 0		--		无
 	 * 		<br> 1		--		上下颠倒
 	 * 		<br> 2		--		左右翻转
@@ -7087,7 +7362,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 需要填充的图片资源。注：必须已加载完成。
-		 * @type {Image}
+		 * @type {HTMLImageElement|null}
 		 */
 		this.res = null;
 		
@@ -7099,7 +7374,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 首帧的显示区
-		 * @type {null|Ycc.Math.Rect}
+		 * @type {Ycc.Math.Rect|null}
 		 */
 		this.firstFrameRect = null;
 		
@@ -7153,6 +7428,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.ImageFrameAnimation.prototype.computeUIProps = function () {
 		// 计算多边形坐标
@@ -7189,6 +7465,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制
+	 * @return {void}
 	 */
 	Ycc.UI.ImageFrameAnimation.prototype.render = function () {
 		var ctx = this.ctxCache;
@@ -7222,6 +7499,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 开始播放
+	 * @return {void}
 	 */
 	Ycc.UI.ImageFrameAnimation.prototype.start = function () {
 		this.startFrameCount = this.belongTo.yccInstance.ticker.frameAllCount;
@@ -7230,6 +7508,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 停止播放
+	 * @return {void}
 	 */
 	Ycc.UI.ImageFrameAnimation.prototype.stop = function () {
 		this.isRunning = false;
@@ -7251,11 +7530,11 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 线段。可设置属性如下
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.start	{Ycc.Math.Dot}	起点
-	 * @param option.end	{Ycc.Math.Dot}	终点
-	 * @param option.width=1	{number}	线条宽度
-	 * @param option.color="black"	{string}	线条颜色
+	 * @param {object} option		所有可配置的配置项
+	 * @param {Ycc.Math.Dot} option.start	起点
+	 * @param {Ycc.Math.Dot} option.end	终点
+	 * @param {number} option.width=1	线条宽度
+	 * @param {string} option.color="black"	线条颜色
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -7278,6 +7557,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Line.prototype.computeUIProps = function () {
 		this.rect.x = this.start.x<this.end.x?this.start.x:this.end.x;
@@ -7327,6 +7607,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	};
 	/**
 	 * 绘制函数与Polygon相同
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	// Ycc.UI.Line.prototype.render = function () {
 	//
@@ -7363,12 +7644,12 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 线段。可设置属性如下
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。该坐标是相对于图层的坐标
-	 * @param option.pointList		{Ycc.Math.Dot[]}		Dot数组。该坐标是相对于图层的坐标
-	 * @param option.width=1	{number}	线条宽度
-	 * @param option.color="black"	{string}	线条颜色
-	 * @param option.smooth=false	{boolean}	线条是否平滑
+	 * @param {object} option		所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。该坐标是相对于图层的坐标
+	 * @param {Ycc.Math.Dot[]} option.pointList		Dot数组。该坐标是相对于图层的坐标
+	 * @param {number} option.width=1	线条宽度
+	 * @param {string} option.color="black"	线条颜色
+	 * @param {boolean} option.smooth=false	线条是否平滑
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -7390,6 +7671,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.BrokenLine.prototype.computeUIProps = function () {
 		if(this.pointList.length===0) {
@@ -7426,6 +7708,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	};
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.BrokenLine.prototype.render = function () {
 		if(this.pointList.length<2) return null;
@@ -7452,7 +7735,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 普通绘制
-	 * @param pointList
+	 * @param {Ycc.Math.Dot[]} pointList
 	 * @private
 	 */
 	Ycc.UI.BrokenLine.prototype._normalRender = function (pointList) {
@@ -7473,7 +7756,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 3、两个控制点距离顶点的长度，根据顶点的相邻顶点在x轴方向上的距离乘以某个系数来确定
 	 * 4、这两个控制点分属于不同的两条曲线，分别是起点的控制点和终点的控制点
 	 * 5、第一个顶点和最后一个顶点只有一个控制点
-	 * @param pointList	{Ycc.Math.Dot[]}	经过转换后的舞台绝对坐标点列表
+	 * @param {Ycc.Math.Dot[]} pointList	经过转换后的舞台绝对坐标点列表
 	 */
 	Ycc.UI.BrokenLine.prototype._smoothLineRender = function (pointList) {
 		var ctx = this.ctxCache;
@@ -7602,16 +7885,16 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 多行文本UI
 	 * @constructor
 	 * @extends Ycc.UI.Base
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.content=""	{string}	内容
-	 * @param option.color=black	{string}	颜色
-	 * @param option.rect	{Ycc.Math.Rect}	文字的绘制区域。若超出长度，此区域会被修改
-	 * @param option.wordBreak=break-all	{string}	水平方向文字超出换行
+	 * @param {object} option		所有可配置的配置项
+	 * @param {string} [option.content=""]	内容
+	 * @param {string} [option.color="black"]	颜色
+	 * @param {Ycc.Math.Rect} option.rect	文字的绘制区域。若超出长度，此区域会被修改
+	 * @param {string} [option.wordBreak="break-all"]	水平方向文字超出换行
 	 * 		<br>`break-all`		超出即换行
 	 * 		<br>`break-word`		在单词处换行
 	 * 		<br>`no-break`		不换行，超出即隐藏
 	 * 		<br>默认为`no-break`
-	 * @param option.overflow=auto	{string}	垂直方向超出rect之后的显示方式
+	 * @param {string} [option.overflow="auto"]	垂直方向超出rect之后的显示方式
 	 * 		<br> `hidden` -- 直接隐藏
 	 * 		<br> `auto`	-- 修改rect大小，完全显示
 	 */
@@ -7660,6 +7943,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.MultiLineText.prototype.computeUIProps = function () {
 		var self = this;
@@ -7805,7 +8089,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 渲染至ctx
-	 * @param ctx
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.MultiLineText.prototype.render = function (ctx) {
 		
@@ -7862,10 +8146,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 方块
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
-	 * @param option.fill=true {boolean}	填充or描边
-	 * @param option.color=black {string} 方块颜色
+	 * @param {object} option			所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。
+	 * @param {boolean} [option.fill=true] 填充or描边
+	 * @param {string} [option.color=black] 方块颜色
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -7893,6 +8177,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
+	 * @return {void}
 	 * @override
 	 */
 	Ycc.UI.Rect.prototype.computeUIProps = function () {
@@ -7907,6 +8192,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.Rect.prototype.render = function (ctx) {
 		var self = this;
@@ -7941,7 +8227,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 裁剪框
-	 * @param option	{object}		所有可配置的配置项
+	 * @param {object} option		所有可配置的配置项
 	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
 	 * @param option.fill=true {boolean}	填充or描边
 	 * @constructor
@@ -8039,7 +8325,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 设置区块的操作按钮
-	 * @param btns
+	 * @param {Array<object>} btns
 	 */
 	Ycc.UI.CropRect.prototype.setCtrlBtns = function (btns) {
 		var self = this;
@@ -8071,6 +8357,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
+	 * @return {void}
 	 */
 	Ycc.UI.CropRect.prototype.computeUIProps = function () {
 		// 设置画布属性再计算，否则计算内容长度会有偏差
@@ -8259,6 +8546,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.CropRect.prototype.render = function () {
 		
@@ -8327,11 +8615,11 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 绘制单行文本
 	 * @constructor
 	 * @extends Ycc.UI.Base
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.content=""	{string}	内容
-	 * @param option.color=black	{string}	颜色
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。位置坐标x,y为rect的x,y
-	 * @param option.overflow=auto	{string}	水平方向超出rect之后的显示方式
+	 * @param {object} option		所有可配置的配置项
+	 * @param {string} [option.content=""]	内容
+	 * @param {string} [option.color="black"]	颜色
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。位置坐标x,y为rect的x,y
+	 * @param {string} [option.overflow="auto"]	水平方向超出rect之后的显示方式
 	 * 		<br> `hidden` -- 直接隐藏
 	 * 		<br> `auto`	-- 修改rect大小，完全显示
 	 * @return {Ycc.UI}
@@ -8401,6 +8689,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.SingleLineText.prototype.computeUIProps = function () {
 		var self = this;
@@ -8450,7 +8739,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 渲染至离屏ctx
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
-	 * @param ctx
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.SingleLineText.prototype.render = function (ctx) {
 		var self = this;
@@ -8532,7 +8821,7 @@ Ycc.prototype.createCacheCtx = function (options) {
     /**
      * 滚动区域UI
 	 * 此UI只能为顶级UI
-     * @param option	            {object}		所有可配置的配置项
+	 * @param {object} option		所有可配置的配置项
 	 * @param option.rect	        {Ycc.Math.Rect}	容纳区。
 	 * @param option.selfRender	    {Boolean}	    是否自身实时渲染
 	 * @param option.contentW	    {number}	    滚动内容的宽
@@ -8639,9 +8928,10 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 
     /**
-     * 计算UI的各种属性。此操作必须在绘制之前调用。
+	 * 计算UI的各种属性。此操作必须在绘制之前调用。
      * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
      * @override
+     * @return {void}
      */
     Ycc.UI.ScrollerRect.prototype.computeUIProps = function () {
         // 计算多边形坐标
@@ -8654,7 +8944,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 
 
     /**
-     * 绘制
+	 * 绘制
+     * @param {CanvasRenderingContext2D} [ctx]
      */
     Ycc.UI.ScrollerRect.prototype.render = function (ctx) {
         var self = this;
@@ -8668,7 +8959,8 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 重载基类方法
-	 * @param ui
+	 * @param {Ycc.UI.Base} ui
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.ScrollerRect.prototype.addChild = function (ui) {
 		if(this.belongTo) ui.init(this.belongTo);
@@ -8849,7 +9141,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	/**
 	 * 按钮组件
 	 * 组件自身也是一个UI，所以option包含ui.base的所有属性
-	 * @param option					{Object}
+	 * @param {object} option					
 	 * @param option.rect				{Ycc.Math.Rect}		相对于父级按钮的位置，继承于base
 	 * @param option.rectBgColor		{String}			按钮区域的背景色，继承于base
 	 * @param option.rectBorderWidth	{Number}			按钮区域的边框宽度，继承于base
@@ -8877,7 +9169,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 背景图资源
-		 * @type {null}
+		 * @type {HTMLImageElement|null}
 		 */
 		this.backgroundImageRes = null;
 		
@@ -8895,14 +9187,14 @@ Ycc.prototype.createCacheCtx = function (options) {
 		
 		/**
 		 * 背景
-		 * @type {null}
+		 * @type {Ycc.UI.Image|null}
 		 * @private
 		 */
 		this.__bgUI = null;
 		
 		/**
 		 * 文字
-		 * @type {null}
+		 * @type {Ycc.UI.SingleLineText|null}
 		 * @private
 		 */
 		this.__textUI = null;
@@ -8946,6 +9238,7 @@ Ycc.prototype.createCacheCtx = function (options) {
 	
 	/**
 	 * 更新属性
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.computeUIProps = function () {
 		if(this.__bgUI){
@@ -8988,6 +9281,19 @@ if("undefined"!== typeof wx){
 			return Date.now();
 		};
 	}
+
+	Ycc.prototype.getSystemInfo = function () {
+		var info = wx.getSystemInfoSync();
+		return {
+			"model":info.model,
+			"pixelRatio":info.pixelRatio,
+			"windowWidth":info.windowWidth,
+			"windowHeight":info.windowHeight,
+			"screenWidth":info.screenWidth,
+			"screenHeight":info.screenHeight,
+			"devicePixelRatio":info.devicePixelRatio||1
+		};
+	};
 };;/**
  * @file    Ycc.polyfill.export.js
  * @author  xiaohei

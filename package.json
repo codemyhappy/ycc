@@ -5,15 +5,9 @@
   "main": "./build/ycc.min.js",
   "types": "./build/ycc.d.ts",
   "scripts": {
-    "start": "grunt",
-    "build": "grunt build",
-    "build:game_super_mario": "grunt build:game_super_mario",
-    "doc": "grunt jsdoc",
-    "clean": "grunt clean",
-    "min": "grunt uglify",
-    "concat": "grunt concat",
-    "release": "grunt release",
-    "example": "start http://localhost:7777/examples/index.html & http-server -p 7777"
+    "dev": "grunt",
+    "build": "grunt build && grunt build:game_super_mario",
+    "example": "http-server -p 7777"
   },
   "repository": {
     "type": "git",
