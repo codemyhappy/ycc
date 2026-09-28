@@ -1,5 +1,43 @@
+# Dependencies
 /node_modules
-.idea
 /examples/**/node_modules
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/dist
+/build/*.map
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Coverage
+coverage
+.nyc_output
+
+# Lock files
 package-lock.json
+yarn.lock
+pnpm-lock.json
+
+# Temp files
+.tmp
+.temp
+
+# Docs (generated)
 /docs

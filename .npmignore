@@ -1,7 +1,48 @@
-/test
+# Source code (not needed for npm)
 /src
+/test
+/tests
+/__tests__
 /examples
-/lib
-/.idea
+/example
+
+# Build tools
 /GruntFile.js
-./docs
+/gulpfile.js
+/webpack.config.js
+/rollup.config.js
+/tsconfig.json
+/.babelrc
+/.eslintrc*
+/.prettierrc*
+
+# IDE
+/.idea
+/.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs
+/docs
+/doc
+/README.md
+
+# Git
+/.git
+/.gitignore
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.json
+
+# Misc
+*.log
+*.map
+.env
+.env.local
