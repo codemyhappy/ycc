@@ -12,22 +12,22 @@
 	
 	/**
 	 * 图片UI
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
-	 * @param option.fillMode=none {string} 填充方式
+	 * @param {object} option		所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。
+	 * @param {string} [option.fillMode="none"] 填充方式
 	 * 		<br> none 			-- 无填充方式。左上角对齐，超出隐藏，不修改rect大小。
 	 * 		<br> repeat 		-- 重复。左上角对齐，重复平铺图片，不修改rect大小，超出隐藏。
 	 * 		<br> scale 			-- 缩放。左上角对齐，缩放至整个rect区域，不修改rect大小。
 	 * 		<br> scaleRepeat 	-- 先缩放再重复。左上角对齐，缩放至某个rect区域，再重复填充整个rect区域，不修改rect大小。
 	 * 		<br> auto 			-- 自动。左上角对齐，rect大小自动适配图片。若图片超出rect，会动态修改rect大小。
 	 * 		<br> scale9Grid 	-- 9宫格模式填充。左上角对齐，中间区域将拉伸，不允许图片超出rect区域大小，不会修改rect大小。
-	 * @param option.res	{Image}		需要填充的图片资源。注：必须已加载完成。
-	 * @param option.mirror	{Number}	将图片镜像绘制方式
+	 * @param {HTMLImageElement|null} option.res		需要填充的图片资源。注：必须已加载完成。
+	 * @param {number} [option.mirror=0]	将图片镜像绘制方式
 	 * 		<br> 0		--		无
 	 * 		<br> 1		--		上下颠倒
 	 * 		<br> 2		--		左右翻转
 	 * 		<br> 3		--		上下左右颠倒
-	 * @param option.scale9GridRect	{Ycc.Math.Rect}	9宫格相对于res图片的中间区域，当且仅当fillMode为scale9Grid有效。
+	 * @param {Ycc.Math.Rect|null} option.scale9GridRect	9宫格相对于res图片的中间区域，当且仅当fillMode为scale9Grid有效。
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -48,7 +48,7 @@
 
 		/**
 		 * 需要填充的图片资源。注：必须已加载完成。
-		 * @type {Image}
+		 * @type {HTMLImageElement|null}
 		 */
 		this.res = null;
 		
@@ -70,7 +70,7 @@
 		
 		/**
 		 * 缩放重复模式下，原始图片的缩放区域，当且仅当fillMode为scaleRepeat有效。
-		 * @type {null}
+		 * @type {Ycc.Math.Rect|null}
 		 */
 		this.scaleRepeatRect = null;
 		
@@ -86,6 +86,7 @@
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Image.prototype.computeUIProps = function () {
 		if(this.fillMode === "auto"){
@@ -128,6 +129,7 @@
 	
 	/**
 	 * 绘制
+	 * @return {void}
 	 */
 	Ycc.UI.Image.prototype.render = function () {
 		var ctx = this.ctxCache;

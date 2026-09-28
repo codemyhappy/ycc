@@ -12,12 +12,12 @@
 	
 	/**
 	 * 线段。可设置属性如下
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。该坐标是相对于图层的坐标
-	 * @param option.pointList		{Ycc.Math.Dot[]}		Dot数组。该坐标是相对于图层的坐标
-	 * @param option.width=1	{number}	线条宽度
-	 * @param option.color="black"	{string}	线条颜色
-	 * @param option.smooth=false	{boolean}	线条是否平滑
+	 * @param {object} option		所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。该坐标是相对于图层的坐标
+	 * @param {Ycc.Math.Dot[]} option.pointList		Dot数组。该坐标是相对于图层的坐标
+	 * @param {number} option.width=1	线条宽度
+	 * @param {string} option.color="black"	线条颜色
+	 * @param {boolean} option.smooth=false	线条是否平滑
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -39,6 +39,7 @@
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.BrokenLine.prototype.computeUIProps = function () {
 		if(this.pointList.length===0) {
@@ -75,6 +76,7 @@
 	};
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.BrokenLine.prototype.render = function () {
 		if(this.pointList.length<2) return null;
@@ -101,7 +103,7 @@
 	
 	/**
 	 * 普通绘制
-	 * @param pointList
+	 * @param {Ycc.Math.Dot[]} pointList
 	 * @private
 	 */
 	Ycc.UI.BrokenLine.prototype._normalRender = function (pointList) {
@@ -122,7 +124,7 @@
 	 * 3、两个控制点距离顶点的长度，根据顶点的相邻顶点在x轴方向上的距离乘以某个系数来确定
 	 * 4、这两个控制点分属于不同的两条曲线，分别是起点的控制点和终点的控制点
 	 * 5、第一个顶点和最后一个顶点只有一个控制点
-	 * @param pointList	{Ycc.Math.Dot[]}	经过转换后的舞台绝对坐标点列表
+	 * @param {Ycc.Math.Dot[]} pointList	经过转换后的舞台绝对坐标点列表
 	 */
 	Ycc.UI.BrokenLine.prototype._smoothLineRender = function (pointList) {
 		var ctx = this.ctxCache;

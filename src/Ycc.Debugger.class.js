@@ -11,6 +11,7 @@
 	/**
 	 * ycc的调试模块
 	 * @constructor
+	 * @param {Ycc} yccInstance - ycc实例
 	 */
 	Ycc.Debugger = function (yccInstance) {
 		this.yccClass = Ycc.Debugger;
@@ -73,6 +74,7 @@
 		
 		/**
 		 * 调试面板的图层
+		 * @type {Ycc.Layer|null}
 		 */
 		this.layer = null;
 		
@@ -131,10 +133,8 @@
 	
 	/**
 	 * 添加一个信息项
-	 * @param name
-	 * @param cb()	{function}
-	 *  cb必须返回一个值，这个值将直接填入
-	 *
+	 * @param {string} name - 字段名称
+	 * @param {function(): *} cb - 回调函数，必须返回一个值，这个值将直接填入
 	 */
 	Ycc.Debugger.prototype.addField = function (name, cb) {
 		var index = this.fields.length;
@@ -160,8 +160,8 @@
 	
 	/**
 	 * 更新某个调试字段的回调函数
-	 * @param name
-	 * @param cb
+	 * @param {string} name - 字段名称
+	 * @param {function(): *} cb - 新的回调函数
 	 */
 	Ycc.Debugger.prototype.updateField = function (name,cb) {
 		for(var i=0;i<this.fields.length;i++){
@@ -176,16 +176,16 @@
 	
 	/**
 	 * 调试日志信息类
-	 * @param message
 	 * @constructor
+	 * @param {string} message - 日志消息
 	 */
 	Ycc.Debugger.Log = function (message) {
 		this.message = '[Ycc logger]=> '+message;
 	};
 	/**
 	 * 调试错误信息类
-	 * @param message
 	 * @constructor
+	 * @param {string} message - 错误消息
 	 */
 	Ycc.Debugger.Error = function (message) {
 		this.message = '[Ycc  error]=> '+message;

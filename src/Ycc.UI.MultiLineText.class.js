@@ -14,16 +14,16 @@
 	 * 多行文本UI
 	 * @constructor
 	 * @extends Ycc.UI.Base
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.content=""	{string}	内容
-	 * @param option.color=black	{string}	颜色
-	 * @param option.rect	{Ycc.Math.Rect}	文字的绘制区域。若超出长度，此区域会被修改
-	 * @param option.wordBreak=break-all	{string}	水平方向文字超出换行
+	 * @param {object} option		所有可配置的配置项
+	 * @param {string} [option.content=""]	内容
+	 * @param {string} [option.color="black"]	颜色
+	 * @param {Ycc.Math.Rect} option.rect	文字的绘制区域。若超出长度，此区域会被修改
+	 * @param {string} [option.wordBreak="break-all"]	水平方向文字超出换行
 	 * 		<br>`break-all`		超出即换行
 	 * 		<br>`break-word`		在单词处换行
 	 * 		<br>`no-break`		不换行，超出即隐藏
 	 * 		<br>默认为`no-break`
-	 * @param option.overflow=auto	{string}	垂直方向超出rect之后的显示方式
+	 * @param {string} [option.overflow="auto"]	垂直方向超出rect之后的显示方式
 	 * 		<br> `hidden` -- 直接隐藏
 	 * 		<br> `auto`	-- 修改rect大小，完全显示
 	 */
@@ -72,6 +72,7 @@
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.MultiLineText.prototype.computeUIProps = function () {
 		var self = this;
@@ -217,7 +218,7 @@
 	
 	/**
 	 * 渲染至ctx
-	 * @param ctx
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.MultiLineText.prototype.render = function (ctx) {
 		

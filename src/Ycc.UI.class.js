@@ -32,7 +32,7 @@
 	 * UI类，提供绘图基本的原子图形和组合图形。
 	 * 每个UI类的对象都跟一个Ycc绑定。
 	 *
-	 * @param yccInstance	{Ycc}
+	 * @param {Ycc} yccInstance
 	 * @constructor
 	 */
 	Ycc.UI = function(yccInstance){
@@ -72,9 +72,9 @@
 	 ******************************************************************************/
 	/**
 	 * 文字
-	 * @param positionDot
-	 * @param content
-	 * @param [fill]
+	 * @param {number[]} positionDot
+	 * @param {string} content
+	 * @param {boolean} [fill]
 	 * @returns {Ycc.UI}
 	 */
 	Ycc.UI.prototype.text = function (positionDot,content,fill) {
@@ -89,8 +89,8 @@
 	
 	/**
 	 * 画线
-	 * @param dot1
-	 * @param dot2
+	 * @param {number[]} dot1
+	 * @param {number[]} dot2
 	 * @returns {Ycc.UI}
 	 */
 	Ycc.UI.prototype.line = function (dot1, dot2) {
@@ -107,9 +107,9 @@
 	
 	/**
 	 * 矩形
-	 * @param left_top_dot
-	 * @param right_bottom_dot
-	 * @param fill
+	 * @param {number[]} left_top_dot
+	 * @param {number[]} right_bottom_dot
+	 * @param {boolean} [fill]
 	 */
 	Ycc.UI.prototype.rect=function (left_top_dot,right_bottom_dot,fill){
 		this.ctx.save();
@@ -127,11 +127,11 @@
 	
 	/**
 	 * 椭圆
-	 * @param centrePoint	{Dot}		椭圆中心点
-	 * @param width			{Number}	长半轴
-	 * @param height		{Number}	短半轴
-	 * @param rotateAngle	{Number}	旋转角
-	 * @param fill			{Boolean}	是否填充
+	 * @param {number[]} centrePoint		椭圆中心点
+	 * @param {number} width			长半轴
+	 * @param {number} height			短半轴
+	 * @param {number} rotateAngle		旋转角
+	 * @param {boolean} fill			是否填充
 	 */
 	Ycc.UI.prototype.ellipse = function(centrePoint,width,height,rotateAngle,fill) {
 		
@@ -161,11 +161,11 @@
 	
 	/**
 	 * 圆弧
-	 * @param centrePoint			圆心
-	 * @param r						半径
-	 * @param startAngle			起始角
-	 * @param endAngle				结束角
-	 * @param [counterclockwise]	方向
+	 * @param {number[]} centrePoint			圆心
+	 * @param {number} r						半径
+	 * @param {number} startAngle			起始角
+	 * @param {number} endAngle				结束角
+	 * @param {boolean} [counterclockwise]	方向
 	 */
 	Ycc.UI.prototype.circleArc = function (centrePoint, r,startAngle,endAngle,counterclockwise) {
 		this.ctx.save();
@@ -187,12 +187,12 @@
 	
 	/**
 	 * 扇形
-	 * @param centrePoint			圆心
-	 * @param r						半径
-	 * @param startAngle			起始角
-	 * @param endAngle				结束角
-	 * @param [fill]				是否填充
-	 * @param [counterclockwise]	方向
+	 * @param {number[]} centrePoint			圆心
+	 * @param {number} r						半径
+	 * @param {number} startAngle			起始角
+	 * @param {number} endAngle				结束角
+	 * @param {boolean} [fill]				是否填充
+	 * @param {boolean} [counterclockwise]	方向
 	 */
 	Ycc.UI.prototype.sector = function (centrePoint, r,startAngle,endAngle,fill,counterclockwise) {
 		this.ctx.save();
@@ -211,7 +211,7 @@
 	
 	/**
 	 * 根据多个点画折线，可以用此方法实现跟随鼠标
-	 * @param pointList		{Array}		Dot数组，即二维数组
+	 * @param {number[][]} pointList		Dot数组，即二维数组
 	 */
 	Ycc.UI.prototype.foldLine = function (pointList) {
 		if(pointList.length<2) return console.error("Error: 参数错误！");
@@ -229,9 +229,9 @@
 	
 	/**
 	 * 圆
-	 * @param centrePoint	圆心
-	 * @param r				半径
-	 * @param fill			是否填充
+	 * @param {number[]} centrePoint	圆心
+	 * @param {number} r				半径
+	 * @param {boolean} fill			是否填充
 	 */
 	Ycc.UI.prototype.circle = function(centrePoint, r, fill) {
 		this.ellipse(centrePoint,r,r,0,fill);
@@ -240,8 +240,8 @@
 	
 	/**
 	 * 绘制图片
-	 * @param img				{Image}		图片路径
-	 * @param left_top_dot		{Array}		左上角坐标
+	 * @param {HTMLImageElement} img				图片路径
+	 * @param {number[]} [left_top_dot]		左上角坐标
 	 */
 	Ycc.UI.prototype.image = function (img,left_top_dot){
 		var self = this;
@@ -288,8 +288,8 @@
 	 ******************************************************************************/
 	/**
 	 * 缩放绘图，对之后的所有操作都有效
-	 * @param scaleX
-	 * @param scaleY
+	 * @param {number} scaleX
+	 * @param {number} scaleY
 	 * @returns {Ycc.UI}
 	 */
 	Ycc.UI.prototype.scale = function (scaleX, scaleY) {
@@ -299,6 +299,7 @@
 
 	/**
 	 * 清除画布
+	 * @return {Ycc.UI}
 	 */
 	Ycc.UI.prototype.clear=function () {
 		var defaultSet = {

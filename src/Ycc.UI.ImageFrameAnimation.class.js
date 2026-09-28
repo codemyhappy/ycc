@@ -9,14 +9,14 @@
 (function (Ycc) {
 	/**
 	 * 图片序列帧动画的UI
-	 * @param option				{object}		所有可配置的配置项
-	 * @param option.rect			{Ycc.Math.Rect}	容纳区。会将显示区的内容缩放至这个区域。
-	 * @param option.res			{Image}			需要填充的图片资源。注：必须已加载完成。
-	 * @param option.frameSpace		{Number}		序列帧播放的帧间隔。默认为1，即每帧都更换图片
-	 * @param option.firstFrameRect	{Number}		首帧的显示区。该区域相对于原始图片，且之后帧显示区将按照这个区域的width递推
-	 * @param option.frameRectCount	{Number}		帧显示区的递推个数。该个数相对于原始图片，表示之后帧显示区的递推个数
-	 * @param option.autoplay		{Boolean}		自动播放
-	 * @param option.mirror			{Number}		将图片镜像绘制方式
+	 * @param {object} option				所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect			容纳区。会将显示区的内容缩放至这个区域。
+	 * @param {HTMLImageElement|null} option.res			需要填充的图片资源。注：必须已加载完成。
+	 * @param {number} [option.frameSpace=1]		序列帧播放的帧间隔。默认为1，即每帧都更换图片
+	 * @param {Ycc.Math.Rect|null} option.firstFrameRect		首帧的显示区。该区域相对于原始图片，且之后帧显示区将按照这个区域的width递推
+	 * @param {number} [option.frameRectCount=1]		帧显示区的递推个数。该个数相对于原始图片，表示之后帧显示区的递推个数
+	 * @param {boolean} [option.autoplay=false]		自动播放
+	 * @param {number} [option.mirror=0]		将图片镜像绘制方式
 	 * 		<br> 0		--		无
 	 * 		<br> 1		--		上下颠倒
 	 * 		<br> 2		--		左右翻转
@@ -31,7 +31,7 @@
 		
 		/**
 		 * 需要填充的图片资源。注：必须已加载完成。
-		 * @type {Image}
+		 * @type {HTMLImageElement|null}
 		 */
 		this.res = null;
 		
@@ -43,7 +43,7 @@
 		
 		/**
 		 * 首帧的显示区
-		 * @type {null|Ycc.Math.Rect}
+		 * @type {Ycc.Math.Rect|null}
 		 */
 		this.firstFrameRect = null;
 		
@@ -97,6 +97,7 @@
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.ImageFrameAnimation.prototype.computeUIProps = function () {
 		// 计算多边形坐标
@@ -133,6 +134,7 @@
 	
 	/**
 	 * 绘制
+	 * @return {void}
 	 */
 	Ycc.UI.ImageFrameAnimation.prototype.render = function () {
 		var ctx = this.ctxCache;
@@ -166,6 +168,7 @@
 	
 	/**
 	 * 开始播放
+	 * @return {void}
 	 */
 	Ycc.UI.ImageFrameAnimation.prototype.start = function () {
 		this.startFrameCount = this.belongTo.yccInstance.ticker.frameAllCount;
@@ -174,6 +177,7 @@
 	
 	/**
 	 * 停止播放
+	 * @return {void}
 	 */
 	Ycc.UI.ImageFrameAnimation.prototype.stop = function () {
 		this.isRunning = false;

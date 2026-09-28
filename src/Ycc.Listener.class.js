@@ -40,73 +40,73 @@
 		 */
 		this.stopAllEvent = false;
 		
-		/**
-		 * 点击 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onclick = null;
-		/**
-		 * 鼠标按下 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmousedown = null;
-		/**
-		 * 鼠标抬起 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmouseup = null;
-		/**
-		 * 鼠标移动 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmousemove = null;
-		/**
-		 * 拖拽开始 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ondragstart = null;
-		/**
-		 * 拖拽 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ondragging = null;
-		/**
-		 * 拖拽结束 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ondragend = null;
-		/**
-		 * 鼠标移入 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmouseover = null;
-		/**
-		 * 鼠标移出 的监听。默认为null
-		 * @type {function}
-		 */
-		this.onmouseout = null;
-		/**
-		 * 触摸开始 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ontouchstart = null;
-		
-		/**
-		 * 触摸移动 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ontouchmove = null;
-		/**
-		 * 触摸结束 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ontouchend = null;
+	/**
+	 * 点击 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onclick = null;
+	/**
+	 * 鼠标按下 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmousedown = null;
+	/**
+	 * 鼠标抬起 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmouseup = null;
+	/**
+	 * 鼠标移动 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmousemove = null;
+	/**
+	 * 拖拽开始 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ondragstart = null;
+	/**
+	 * 拖拽 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ondragging = null;
+	/**
+	 * 拖拽结束 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ondragend = null;
+	/**
+	 * 鼠标移入 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmouseover = null;
+	/**
+	 * 鼠标移出 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.onmouseout = null;
+	/**
+	 * 触摸开始 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ontouchstart = null;
+	
+	/**
+	 * 触摸移动 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ontouchmove = null;
+	/**
+	 * 触摸结束 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ontouchend = null;
 
-		/**
-		 * 点击事件 的监听。默认为null
-		 * @type {function}
-		 */
-		this.ontap = null;
+	/**
+	 * 点击事件 的监听。默认为null
+	 * @type {function(Ycc.Event): void|null}
+	 */
+	this.ontap = null;
 	};
 	
 	
@@ -114,7 +114,7 @@
 	 * 释放某个监听器的内存
 	 * 将其所有引用属性设为null，等待GC
 	 * @static
-	 * @param listener
+	 * @param {Ycc.Listener} listener - 监听器对象
 	 */
 	Ycc.Listener.release = function (listener) {
 		// 临时变量
@@ -228,8 +228,9 @@
 	
 	/**
 	 * 添加某个类型的监听器
-	 * @param type	{string}
-	 * @param listener	{function}
+	 * @param {string} type - 事件类型
+	 * @param {Function} listener - 监听器函数
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.addListener = function (type, listener) {
 		var ls = this.listeners[type];
@@ -241,7 +242,8 @@
 	
 	/**
 	 * 阻止某个事件类型继续传递
-	 * @param type
+	 * @param {string} type - 事件类型
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.stop = function (type) {
 		this.stopType[type] = true;
@@ -249,8 +251,9 @@
 	
 	/**
 	 * 触发某一类型的监听器
-	 * @param type
-	 * @param data
+	 * @param {string} type - 事件类型
+	 * @param {...*} data - 事件数据
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.triggerListener = function (type,data) {
 		if(this.stopAllEvent) return;
@@ -270,8 +273,9 @@
 	
 	/**
 	 * 移除某个类型的监听器
-	 * @param type
-	 * @param listener
+	 * @param {string} type - 事件类型
+	 * @param {Function} listener - 监听器函数
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.removeListener = function (type,listener) {
 		var ls = this.listeners[type];
@@ -286,7 +290,8 @@
 	
 	/**
 	 * 禁止某个事件触发
-	 * @param type
+	 * @param {string} type - 事件类型
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.disableEvent = function (type) {
 		this.disableType[type] = true;
@@ -294,7 +299,8 @@
 	
 	/**
 	 * 恢复某个事件的触发
-	 * @param type
+	 * @param {string} type - 事件类型
+	 * @return {void}
 	 */
 	Ycc.Listener.prototype.resumeEvent = function (type) {
 		this.disableType[type] = false;

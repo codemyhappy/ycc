@@ -7,11 +7,14 @@
  */
 
 /**
+ * @typedef {Object} YccConfig
+ * @property {boolean} [debugDrawContainer=false] - 是否显示所有UI的容纳区域
+ */
+
+/**
  * 应用启动入口类，每个实例都与一个canvas绑定。
  * 该canvas元素会被添加至HTML结构中，作为应用的显示舞台。
- * @param config {Object} 整个ycc的配置项
- * @param config.debugDrawContainer {Boolean} 是否显示所有UI的容纳区域
- * 若开启，所有UI都会创建一个属于自己的离屏canvas，大小与舞台一致
+ * @param {YccConfig} [config] - 整个ycc的配置项
  * @constructor
  */
 var Ycc = function Ycc(config){
@@ -48,12 +51,13 @@ var Ycc = function Ycc(config){
 	
 	/**
 	 * 系统心跳管理器
+	 * @type {Ycc.Ticker|null}
 	 */
 	this.ticker = null;
 	
 	/**
 	 * 调试模块
-	 * @type {null}
+	 * @type {Ycc.Debugger|null}
 	 */
 	this.debugger = null;
 	
@@ -77,7 +81,7 @@ var Ycc = function Ycc(config){
 
 	/**
 	 * 系统的手势模块
-	 * @type {null}
+	 * @type {Ycc.Gesture|null}
 	 */
 	this.gesture = null;
 
@@ -95,8 +99,16 @@ var Ycc = function Ycc(config){
 	 */
 	this.isMobile = Ycc.utils.isMobile();
 	
+	/**
+	 * 舞台宽
+	 * @type {number}
+	 */
 	this.stageW = 0;
 	
+	/**
+	 * 舞台高
+	 * @type {number}
+	 */
 	this.stageH = 0;
 	
 	/**
@@ -108,6 +120,7 @@ var Ycc = function Ycc(config){
 
 /**
  * 获取舞台的宽
+ * @return {number}
  */
 Ycc.prototype.getStageWidth = function () {
 	return this.canvasDom.width;
@@ -115,6 +128,7 @@ Ycc.prototype.getStageWidth = function () {
 
 /**
  * 获取舞台的高
+ * @return {number}
  */
 Ycc.prototype.getStageHeight = function () {
 	return this.canvasDom.height;
@@ -122,7 +136,7 @@ Ycc.prototype.getStageHeight = function () {
 
 /**
  * 绑定canvas元素，一个canvas绑定一个ycc实例
- * @param canvas
+ * @param {HTMLCanvasElement} canvas
  * @return {Ycc}
  */
 Ycc.prototype.bindCanvas = function (canvas) {
@@ -305,7 +319,8 @@ Ycc.prototype._initStageGestureEvent = function () {
 
 
 /**
- * 清除
+ * 清除舞台
+ * @return {void}
  */
 Ycc.prototype.clearStage = function () {
 	this.ctx.clearRect(0,0,this.getStageWidth(),this.getStageHeight());
@@ -314,8 +329,8 @@ Ycc.prototype.clearStage = function () {
 
 /**
  * 根据id查找图层
- * @param id 图层id
- * @return {Ycc.Layer}
+ * @param {number} id - 图层id
+ * @return {Ycc.Layer|null}
  */
 Ycc.prototype.findLayerById = function (id) {
 	for(var i =0;i<this.layerList.length;i++){
@@ -328,8 +343,8 @@ Ycc.prototype.findLayerById = function (id) {
 
 /**
  * 根据id查找UI
- * @param id UI的id
- * @return {Ycc.UI}
+ * @param {number} id - UI的id
+ * @return {Ycc.UI.Base|null}
  */
 Ycc.prototype.findUiById = function (id) {
 	for(var i =0;i<this.layerList.length;i++){
@@ -401,11 +416,11 @@ Ycc.prototype.getUIListFromPointer = function (dot,options) {
  * var stage = canvas || ycc.createCanvas();
  * ycc.bindCanvas(stage);
  *
- * @param options
- * @param options.width
- * @param options.height
- * @param options.dpiAdaptation		是否根据dpi适配canvas大小
- * @return {*}	已创建的canvas元素
+ * @param {object} [options]
+ * @param {number} [options.width] - canvas宽度
+ * @param {number} [options.height] - canvas高度
+ * @param {boolean} [options.dpiAdaptation=false] - 是否根据dpi适配canvas大小
+ * @return {HTMLCanvasElement} 已创建的canvas元素
  */
 Ycc.prototype.createCanvas = function (options) {
 	options = options||{};
@@ -447,9 +462,10 @@ Ycc.prototype.getSystemInfo = function () {
 
 /**
  * 创建一个离屏的绘图空间，默认大小与舞台等同
- * @param options
- * @param options.width
- * @param options.height
+ * @param {object} [options]
+ * @param {number} [options.width] - 离屏画布宽度
+ * @param {number} [options.height] - 离屏画布高度
+ * @return {CanvasRenderingContext2D}
  */
 Ycc.prototype.createCacheCtx = function (options) {
 	options = options || {

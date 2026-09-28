@@ -3,6 +3,7 @@
   "version": "0.0.7",
   "description": "Mini and powerful canvas engine for creating App or Game.",
   "main": "./build/ycc.min.js",
+  "types": "./build/ycc.d.ts",
   "scripts": {
     "start": "grunt",
     "build": "grunt build",
@@ -41,7 +42,8 @@
     "grunt-contrib-uglify": "^1.0.1",
     "grunt-contrib-watch": "^1.0.0",
     "grunt-jsdoc": "^2.1.1",
+    "http-server": "^0.11.1",
     "matter-js": "^0.14.2",
-    "http-server": "^0.11.1"
+    "typescript": "^7.0.2"
   }
 }

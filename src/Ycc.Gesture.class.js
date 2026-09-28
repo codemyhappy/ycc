@@ -11,6 +11,22 @@
 (function (Ycc) {
 	
 	/**
+	 * @typedef {Object} Ycc.Gesture.EventData
+	 * @property {string} type - 事件类型
+	 * @property {null} target - 事件触发对象
+	 * @property {number} identifier - 生命周期ID
+	 * @property {number} clientX
+	 * @property {number} clientY
+	 * @property {number} pageX
+	 * @property {number} pageY
+	 * @property {number} screenX
+	 * @property {number} screenY
+	 * @property {number} force
+	 * @property {string} swipeDirection - 手势滑动方向
+	 * @property {number} createTime - 创建时间
+	 */
+	
+	/**
 	 *
 	 * @param option
 	 * @param option.target 手势触发的HTML对象
@@ -359,7 +375,7 @@
 	 * 构造筛选事件中的有用信息
 	 * @param event	{MouseEvent | TouchEvent}	鼠标事件或者触摸事件
 	 * @param [type] {String} 事件类型，可选
-	 * @return {{target: null, clientX: number, clientY: number, pageX: number, pageY: number, screenX: number, screenY: number, force: number}}
+	 * @return {Ycc.Gesture.EventData}
 	 * @private
 	 */
 	Ycc.Gesture.prototype._createEventData = function (event,type) {
@@ -408,6 +424,11 @@
 	
 	/**
 	 * 获取某个触摸点的swipe方向
+	 * @param {number} x1
+	 * @param {number} y1
+	 * @param {number} x2
+	 * @param {number} y2
+	 * @return {string}
 	 * @private
 	 */
 	Ycc.Gesture.prototype._getSwipeDirection = function (x1,y1,x2,y2) {
@@ -416,9 +437,9 @@
 	
 	/**
 	 * 获取缩放比例
-	 * @param preLife
-	 * @param curLife
-	 * @return {number}
+	 * @param {Ycc.TouchLifeTracer.TouchLife} preLife
+	 * @param {Ycc.TouchLifeTracer.TouchLife} curLife
+	 * @return {{rate: number, angle: number}}
 	 * @private
 	 */
 	Ycc.Gesture.prototype.getZoomRateAndRotateAngle = function (preLife, curLife) {
@@ -452,7 +473,7 @@
 
 	/**
 	 * 设置是否启用多点触控
-	 * @param enable
+	 * @param {boolean} enable
 	 */
 	Ycc.Gesture.prototype.enableMutiTouch = function (enable) {
 		this.option.useMulti = false;

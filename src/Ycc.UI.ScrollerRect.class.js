@@ -13,7 +13,7 @@
     /**
      * 滚动区域UI
 	 * 此UI只能为顶级UI
-     * @param option	            {object}		所有可配置的配置项
+	 * @param {object} option		所有可配置的配置项
 	 * @param option.rect	        {Ycc.Math.Rect}	容纳区。
 	 * @param option.selfRender	    {Boolean}	    是否自身实时渲染
 	 * @param option.contentW	    {number}	    滚动内容的宽
@@ -120,9 +120,10 @@
 
 
     /**
-     * 计算UI的各种属性。此操作必须在绘制之前调用。
+	 * 计算UI的各种属性。此操作必须在绘制之前调用。
      * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
      * @override
+     * @return {void}
      */
     Ycc.UI.ScrollerRect.prototype.computeUIProps = function () {
         // 计算多边形坐标
@@ -135,7 +136,8 @@
 
 
     /**
-     * 绘制
+	 * 绘制
+     * @param {CanvasRenderingContext2D} [ctx]
      */
     Ycc.UI.ScrollerRect.prototype.render = function (ctx) {
         var self = this;
@@ -149,7 +151,8 @@
 	
 	/**
 	 * 重载基类方法
-	 * @param ui
+	 * @param {Ycc.UI.Base} ui
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.ScrollerRect.prototype.addChild = function (ui) {
 		if(this.belongTo) ui.init(this.belongTo);

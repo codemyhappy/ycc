@@ -11,12 +11,12 @@
 	
 	/**
 	 * 圆
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
-	 * @param option.fill=true {boolean}	填充or描边
-	 * @param option.color=black {string} 圆的颜色
-	 * @param option.point {Ycc.Math.Dot} 圆心位置，相对坐标
-	 * @param option.r=10 {number} 圆的半径
+	 * @param {object} option			所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。
+	 * @param {boolean} [option.fill=true] 填充or描边
+	 * @param {string} [option.color=black] 圆的颜色
+	 * @param {Ycc.Math.Dot|null} option.point 圆心位置，相对坐标
+	 * @param {number} [option.r=10] 圆的半径
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -38,6 +38,7 @@
 	/**
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
+	 * @return {void}
 	 * @override
 	 */
 	Ycc.UI.Circle.prototype.computeUIProps = function () {
@@ -57,6 +58,7 @@
 	
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 * @override
 	 */
 	Ycc.UI.Circle.prototype.render = function () {
@@ -117,8 +119,9 @@
 	
 	/**
 	 * 判断是否在圆内
-	 * @param dot	绝对坐标
-	 * @param noneZeroMode
+	 * @param {Ycc.Math.Dot} dot	绝对坐标
+	 * @param {number} [noneZeroMode]
+	 * @return {boolean}
 	 * @override
 	 */
 	Ycc.UI.Circle.prototype.containDot = function (dot,noneZeroMode) {

@@ -87,13 +87,19 @@ module.exports = function(grunt){
 			contents:['docs/v'+packageJSON.version,"build"]
 		}
         
-        ,watch:{
+        		,watch:{
 			options: {
 				livereload: 9000
 			},
 			files:["./src/*.js","./GruntFile.js"],
-            tasks: ["clean","concat","uglify"]
+            tasks: ["clean","concat","uglify","copy:dts"]
         },
+		copy:{
+			dts:{
+				src: 'ycc.d.ts',
+				dest: 'build/ycc.d.ts'
+			}
+		},
 		// copy:[
 		// 		{expand:true,cwd:"./src", src: '*.js', dest: 'build/'}
   		// 	]/*.concat(fs.readdirSync("./examples").map(function (t) {
@@ -116,10 +122,10 @@ module.exports = function(grunt){
 	grunt.loadNpmTasks('grunt-jsdoc');
     // 默认被执行的任务列表。
     grunt.registerTask('default', ['watch']);
-    // build任务：不生成文档，只生成最终的ycc.js
-	grunt.registerTask('build', ["clean","concat","uglify"]);
+    // build任务：不生成文档，只生成最终的ycc.js和ycc.d.ts
+	grunt.registerTask('build', ["clean","concat","uglify","copy:dts"]);
 	// release任务：生成文档，源代码的压缩文件
-	grunt.registerTask('release', ["clean","concat","uglify","jsdoc"]);
+	grunt.registerTask('release', ["clean","concat","uglify","copy:dts","jsdoc"]);
 
 	// super-mario任务
 	grunt.registerTask('build:game_super_mario', ["clean:game_super_mario","concat:game_super_mario","uglify:game_super_mario","copy:game_super_mario"]);

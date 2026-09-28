@@ -14,11 +14,11 @@
 	 * 绘制单行文本
 	 * @constructor
 	 * @extends Ycc.UI.Base
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.content=""	{string}	内容
-	 * @param option.color=black	{string}	颜色
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。位置坐标x,y为rect的x,y
-	 * @param option.overflow=auto	{string}	水平方向超出rect之后的显示方式
+	 * @param {object} option		所有可配置的配置项
+	 * @param {string} [option.content=""]	内容
+	 * @param {string} [option.color="black"]	颜色
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。位置坐标x,y为rect的x,y
+	 * @param {string} [option.overflow="auto"]	水平方向超出rect之后的显示方式
 	 * 		<br> `hidden` -- 直接隐藏
 	 * 		<br> `auto`	-- 修改rect大小，完全显示
 	 * @return {Ycc.UI}
@@ -88,6 +88,7 @@
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.SingleLineText.prototype.computeUIProps = function () {
 		var self = this;
@@ -137,7 +138,7 @@
 	/**
 	 * 渲染至离屏ctx
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
-	 * @param ctx
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.SingleLineText.prototype.render = function (ctx) {
 		var self = this;

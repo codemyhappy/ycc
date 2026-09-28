@@ -10,6 +10,16 @@
 (function (Ycc) {
 	
 	/**
+	 * @typedef {Object} Ycc.Loader.ResourceItem
+	 * @property {string} [name] - 资源名称
+	 * @property {string} url - 资源的url
+	 * @property {string} [type='image'] - 资源类型 image/audio
+	 * @property {HTMLImageElement|HTMLAudioElement} [res] - 加载完成的资源
+	 * @property {string} [crossOrigin] - 跨域配置
+	 * @property {number} [timeout=10000] - 加载超时时间(ms)
+	 */
+	
+	/**
 	 * ycc实例的资源加载类
 	 * @constructor
 	 */
@@ -31,16 +41,11 @@
 	
 	/**
 	 * 并发加载资源
-	 * @param resArr
-	 * @param [resArr.name] 			资源名称，方便查找
-	 * @param resArr.url  				资源的url
-	 * @param [resArr.type]  			资源类型 image,audio，默认为image
-	 * @param [resArr.res]  			资源加载完成后，附加给该字段
-	 * @param [resArr.crossOrigin]  	资源跨域配置项
-	 * @param endCb						资源加载结束的回调
-	 * @param [progressCb]				资源加载进度的回调
-	 * @param [endResArr] 				用于存储加载已结束的音频，一般不用传值
-	 * @param [endResMap] 				用于存储加载已结束的音频map，一般不用传值。注：map的key是根据name字段生成的
+	 * @param {Ycc.Loader.ResourceItem[]} resArr - 资源列表
+	 * @param {function(Ycc.Loader.ResourceItem[], Object): void} endCb - 资源加载结束的回调
+	 * @param {function(Ycc.Loader.ResourceItem, Error|null, number): void} [progressCb] - 资源加载进度的回调
+	 * @param {Ycc.Loader.ResourceItem[]} [endResArr] - 用于存储加载已结束的音频，一般不用传值
+	 * @param {Object} [endResMap] - 用于存储加载已结束的音频map，一般不用传值。注：map的key是根据name字段生成的
 	 */
 	Ycc.Loader.prototype.loadResParallel = function (resArr, endCb, progressCb,endResArr,endResMap) {
 		endResArr = endResArr || [];
@@ -85,15 +90,11 @@
 
 	/**
 	 * 依次加载资源
-	 * @param resArr
-	 * @param [resArr.name] 	资源名称，方便查找
-	 * @param resArr.url  		资源的url
-	 * @param [resArr.type]  	资源类型 image,audio
-	 * @param [resArr.res]  	资源加载完成后，附加给该字段
-	 * @param endCb				资源加载结束的回调
-	 * @param [progressCb]		资源加载进度的回调
-	 * @param [endResArr] 		用于存储加载已结束的音频，一般不用传值
-	 * @param [endResMap] 		用于存储加载已结束的音频map，一般不用传值。注：map的key是根据name字段生成的
+	 * @param {Ycc.Loader.ResourceItem[]} resArr - 资源列表
+	 * @param {function(Ycc.Loader.ResourceItem[], Object): void} endCb - 资源加载结束的回调
+	 * @param {function(Ycc.Loader.ResourceItem, Error|null, number): void} [progressCb] - 资源加载进度的回调
+	 * @param {Ycc.Loader.ResourceItem[]} [endResArr] - 用于存储加载已结束的音频，一般不用传值
+	 * @param {Object} [endResMap] - 用于存储加载已结束的音频map，一般不用传值。注：map的key是根据name字段生成的
 	 */
 	Ycc.Loader.prototype.loadResOneByOne = function (resArr, endCb, progressCb,endResArr,endResMap) {
 		endResArr = endResArr || [];
@@ -196,8 +197,9 @@
 	
 	/**
 	 * 获取资源
-	 * @param resArr
-	 * @param name
+	 * @param {string} name - 资源名称
+	 * @param {Ycc.Loader.ResourceItem[]} resArr - 资源列表
+	 * @return {Ycc.Loader.ResourceItem|null}
 	 */
 	Ycc.Loader.prototype.getResByName = function (name,resArr) {
 		for(var i=0;i<resArr.length;i++){

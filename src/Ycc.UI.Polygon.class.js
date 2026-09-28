@@ -12,9 +12,9 @@
 	 * 位置坐标x、y为只读属性，且为相对坐标，默认取多边形的第一个顶点坐标
 	 * @constructor
 	 * @extends Ycc.UI.Base
-	 * @param option    			{object}        	所有可配置的配置项
-	 * @param option.fill 			{boolean}			是否填充绘制，false表示描边绘制
-	 * @param option.coordinates  	{Ycc.Math.Dot[]}    多边形点坐标的数组，为保证图形能够闭合，起点和终点必须相等。注意：点列表的坐标为相对坐标
+	 * @param {object} option    		所有可配置的配置项
+	 * @param {boolean} option.fill 		是否填充绘制，false表示描边绘制
+	 * @param {Ycc.Math.Dot[]} option.coordinates  多边形点坐标的数组，为保证图形能够闭合，起点和终点必须相等。注意：点列表的坐标为相对坐标
 	 */
 	Ycc.UI.Polygon = function Polygon(option) {
 		option = option || {};
@@ -59,7 +59,7 @@
 		
 		/**
 		 * 多边形点坐标的数组，为保证图形能够闭合，起点和终点必须相等
-		 * @type {null}
+		 * @type {Ycc.Math.Dot[]}
 		 */
 		this.coordinates=option.coordinates||[];
 		
@@ -74,6 +74,7 @@
 	/**
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
+	 * @return {void}
 	 * @override
 	 */
 	Ycc.UI.Polygon.prototype.computeUIProps = function () {
@@ -85,7 +86,7 @@
 	
 	/**
 	 * 渲染至ctx
-	 * @param ctx
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.Polygon.prototype.render = function (ctx) {
 		var self = this;
@@ -112,7 +113,7 @@
 	 * 只绘制路径，不填充、不描边
 	 * 继承的子类若不是多边形，需要重载此方法
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
-	 * @param ctx 离屏canvas的绘图环境
+	 * @return {void}
 	 */
 	Ycc.UI.Polygon.prototype.renderPath = function () {
 		if(this.coordinates.length===0) return;
@@ -147,7 +148,7 @@
 	/**
 	 * 获取UI的绝对坐标，只计算图层坐标和UI的位置坐标x、y
 	 * 不考虑UI的缩放和旋转，缩放旋转可通过其他方法转换
-	 * @param [pos] {Ycc.Math.Dot}	获取到的位置对象，非必传
+	 * @param {Ycc.Math.Dot} [pos]	获取到的位置对象，非必传
 	 * @return {Ycc.Math.Dot}
 	 * @override
 	 */
@@ -192,6 +193,8 @@
 	
 	/**
 	 * 绘制旋转缩放之前的UI
+	 * @param {CanvasRenderingContext2D} [ctx]
+	 * @return {void}
 	 * @override
 	 */
 	Ycc.UI.Polygon.prototype.renderDashBeforeUI = function (ctx) {
@@ -225,8 +228,8 @@
 	 * 方法一：经过该点的水平射线与多边形的焦点数，即Ray-casting Algorithm
 	 * 方法二：某个点始终位于多边形逆时针向量的左侧、或者顺时针方向的右侧即可判断，算法名忘记了
 	 * 此方法采用方法一，并假设该射线平行于x轴，方向为x轴正方向
-	 * @param dot {Ycc.Math.Dot} 需要判断的点，绝对坐标
-	 * @param noneZeroMode {Number} 是否noneZeroMode 1--启用 2--关闭 默认启用
+	 * @param {Ycc.Math.Dot} dot 需要判断的点，绝对坐标
+	 * @param {number} [noneZeroMode] 是否noneZeroMode 1--启用 2--关闭 默认启用
 	 * 		从这个点引出一根“射线”，与多边形的任意若干条边相交，计数初始化为0，若相交处被多边形的边从左到右切过，计数+1，若相交处被多边形的边从右到左切过，计数-1，最后检查计数，如果是0，点在多边形外，如果非0，点在多边形内
 	 * @return {boolean}
 	 */

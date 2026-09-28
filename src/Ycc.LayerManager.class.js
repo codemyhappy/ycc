@@ -10,7 +10,7 @@
 	
 	/**
 	 * Ycc的图层管理类。每个图层管理器都与一个canvas舞台绑定。
-	 * @param yccInstance {Ycc}		ycc实例
+	 * @param {Ycc} yccInstance ycc实例
 	 * @constructor
 	 */
 	Ycc.LayerManager = function (yccInstance) {
@@ -49,7 +49,8 @@
 	
 	/**
 	 * 新建图层
-	 * @param config
+	 * @param {Ycc.Layer.Config} config
+	 * @return {Ycc.Layer}
 	 */
 	Ycc.LayerManager.prototype.newLayer = function (config) {
 		var layer = new Ycc.Layer(this.yccInstance,config);
@@ -59,7 +60,8 @@
 	
 	/**
 	 * 删除图层。
-	 * @param layer
+	 * @param {Ycc.Layer} layer
+	 * @return {Ycc.Layer}
 	 */
 	Ycc.LayerManager.prototype.deleteLayer = function (layer) {
 		var layerList = this.yccInstance.layerList;
@@ -74,6 +76,7 @@
 	
 	/**
 	 * 删除所有图层
+	 * @return {void}
 	 */
 	Ycc.LayerManager.prototype.deleteAllLayer = function () {
 		for(var i=0;i<this.yccInstance.layerList.length;i++){
@@ -89,7 +92,7 @@
 	
 	/**
 	 * 重新将所有图层绘制至舞台。不显示的图层也会更新。
-	 * @param forceUpdate {boolean}	是否强制更新
+	 * @param {boolean} [forceUpdate] 是否强制更新
 	 * 若强制更新，所有图层会强制更新缓存
 	 * 若非强制更新，对于使用缓存的图层，只会绘制缓存至舞台
 	 */
@@ -120,7 +123,8 @@
 	
 	/**
 	 * 只允许某一个图层接收舞台事件
-	 * @param layer	{Layer}		允许接收事件的图层
+	 * @param {Ycc.Layer} layer 允许接收事件的图层
+	 * @return {Ycc.LayerManager|boolean}
 	 */
 	Ycc.LayerManager.prototype.enableEventManagerOnly = function (layer) {
 		if(!layer) return false;
@@ -133,7 +137,7 @@
 	
 	/**
 	 * 允许所有图层接收舞台事件
-	 * @param enable
+	 * @param {boolean} enable
 	 * @return {Ycc.LayerManager}
 	 */
 	Ycc.LayerManager.prototype.enableEventManagerAll = function (enable) {
@@ -146,8 +150,7 @@
 	
 	/**
 	 * 根据json数组绘制所有图层
-	 * @param jsonArray {Array} json数组，示例：[{option,ui[]}]
-	 * @return {*}
+	 * @param {Array} jsonArray json数组，示例：[{option,ui[]}]
 	 */
 	Ycc.LayerManager.prototype.renderAllLayerByJsonArray = function (jsonArray) {
 		if(!Ycc.utils.isArray(jsonArray)){

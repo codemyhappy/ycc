@@ -21,18 +21,20 @@
 
 	/**
 	 * ajax get请求
-	 * @param url
-	 * @param successCb			成功的回调函数
-	 * @param errorCb			失败的回调函数
-	 * @param responseType
+	 * @param {string} url - 请求地址
+	 * @param {function} successCb - 成功的回调函数
+	 * @param {function} errorCb - 失败的回调函数
+	 * @param {string} [responseType='json'] - 响应类型
+	 * @return {void}
 	 */
 	/**
 	 * ajax get请求
-	 * @param option
-	 * @param option.url
-	 * @param option.successCb
-	 * @param option.successCb
-	 * @param option.responseType
+	 * @param {object} option - 请求配置
+	 * @param {string} option.url - 请求地址
+	 * @param {function} option.successCb - 成功的回调函数
+	 * @param {function} option.errorCb - 失败的回调函数
+	 * @param {string} [option.responseType='json'] - 响应类型
+	 * @return {void}
 	 */
 	Ycc.Ajax.prototype.get = function (option) {
 		var self = this;

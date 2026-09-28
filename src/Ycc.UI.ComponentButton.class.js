@@ -10,7 +10,7 @@
 	/**
 	 * 按钮组件
 	 * 组件自身也是一个UI，所以option包含ui.base的所有属性
-	 * @param option					{Object}
+	 * @param {object} option					
 	 * @param option.rect				{Ycc.Math.Rect}		相对于父级按钮的位置，继承于base
 	 * @param option.rectBgColor		{String}			按钮区域的背景色，继承于base
 	 * @param option.rectBorderWidth	{Number}			按钮区域的边框宽度，继承于base
@@ -38,7 +38,7 @@
 		
 		/**
 		 * 背景图资源
-		 * @type {null}
+		 * @type {HTMLImageElement|null}
 		 */
 		this.backgroundImageRes = null;
 		
@@ -56,14 +56,14 @@
 		
 		/**
 		 * 背景
-		 * @type {null}
+		 * @type {Ycc.UI.Image|null}
 		 * @private
 		 */
 		this.__bgUI = null;
 		
 		/**
 		 * 文字
-		 * @type {null}
+		 * @type {Ycc.UI.SingleLineText|null}
 		 * @private
 		 */
 		this.__textUI = null;
@@ -107,6 +107,7 @@
 	
 	/**
 	 * 更新属性
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.computeUIProps = function () {
 		if(this.__bgUI){

@@ -14,12 +14,22 @@
 	var layerIndex = 0;
 	
 	/**
+	 * @typedef {Object} Ycc.Layer.Config
+	 * @property {string} [name] - 图层名称
+	 * @property {'ui'|'tool'|'text'} [type='ui'] - 图层类型
+	 * @property {boolean} [enableEventManager=false] - 是否监听舞台事件
+	 * @property {boolean} [enableFrameEvent=false] - 是否接收每帧更新通知
+	 * @property {boolean} [show=true] - 是否显示
+	 * @property {boolean} [ghost=false] - 是否幽灵图层
+	 * @property {boolean} [useCache=false] - 是否使用独立缓存canvas
+	 */
+	
+	/**
 	 * 图层类。
 	 * 每新建一个图层，都会新建一个canvas元素。
 	 * 每个图层都跟这个canvas元素绑定。
-	 * @param yccInstance	{Ycc} ycc实例
-	 * @param option		{object} 配置项
-	 * @param option.enableEventManager		{boolean} 是否监听舞台事件
+	 * @param {Ycc} yccInstance ycc实例
+	 * @param {Ycc.Layer.Config} [option] 配置项
 	 *
 	 * @constructor
 	 * @extends Ycc.Listener
@@ -176,7 +186,7 @@
 	/**
 	 * 释放layer的内存，等待GC
 	 * 将所有引用属性置为null
-	 * @param layer
+	 * @param {Ycc.Layer} layer
 	 */
 	Ycc.Layer.release = function (layer) {
 		Ycc.Listener.release(layer);
@@ -229,7 +239,7 @@
 	
 	/**
 	 * 初始化
-	 * @return {null}
+	 * @return {void}
 	 */
 	Ycc.Layer.prototype.init = function () {
 		var self = this;
@@ -412,8 +422,8 @@
 	
 	/**
 	 * 设置画布所有的属性
-	 * @param props 属性map
-	 * @param ctx	绘图环境，可选参数，默认为上屏canvas的绘图环境
+	 * @param {object} [props] 属性map
+	 * @param {CanvasRenderingContext2D} [ctx] 绘图环境，可选参数，默认为上屏canvas的绘图环境
 	 * @private
 	 */
 	Ycc.Layer.prototype._setCtxProps = function (props,ctx) {
@@ -483,8 +493,9 @@
 	
 	/**
 	 * 添加一个UI图形至图层，如果设置了beforUI，该UI会被添加至该UI之前
-	 * @param ui {Ycc.UI}	UI图形
-	 * @param beforeUI {Ycc.UI|null}	UI图形
+	 * @param {Ycc.UI.Base} ui UI图形
+	 * @param {Ycc.UI.Base} [beforeUI] UI图形
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.Layer.prototype.addUI = function (ui,beforeUI) {
 		var self = this;
@@ -508,7 +519,8 @@
 	
 	/**
 	 * 删除图层内的某个UI图形，及其子UI
-	 * @param ui
+	 * @param {Ycc.UI.Base} ui
+	 * @return {boolean}
 	 */
 	Ycc.Layer.prototype.removeUI = function (ui) {
 		if(!ui) return false;
@@ -527,7 +539,7 @@
 	 * 渲染Layer中的所有UI，
 	 * <br>直接将UI的离屏canvas绘制至上屏canvas。
 	 *
-	 * @param forceUpdate {boolean}	是否强制更新
+	 * @param {boolean} [forceUpdate] 是否强制更新
 	 * 若强制更新，所有图层会强制更新缓存
 	 * 若非强制更新，对于使用缓存的图层，只会绘制缓存至舞台
 	 */
@@ -539,7 +551,7 @@
 	 * 重绘图层。
 	 * <br>直接将UI的离屏canvas绘制至上屏canvas。
 	 *
-	 * @param forceUpdate {boolean}	是否强制更新
+	 * @param {boolean} [forceUpdate] 是否强制更新
 	 * 若强制更新，所有图层会强制更新缓存
 	 * 若非强制更新，对于使用缓存的图层，只会绘制缓存至舞台
 	 */
@@ -554,7 +566,7 @@
 	
 	/**
 	 * 绘制缓存区域至上屏canvas
-	 * @param forceUpdate {boolean}	是否强制更新，若为true，绘制之前先重新绘制缓存
+	 * @param {boolean} [forceUpdate] 是否强制更新，若为true，绘制之前先重新绘制缓存
 	 */
 	Ycc.Layer.prototype.renderCacheToStage = function (forceUpdate) {
 		if(!this.useCache) return;
@@ -579,9 +591,9 @@
 	
 	/**
 	 * 获取图层中某个点所对应的最上层UI，最上层UI根据层级向下遍历，取层级最深的可见UI。
-	 * @param dot {Ycc.Math.Dot}	点坐标，为舞台的绝对坐标
-	 * @param uiIsShow {Boolean}	是否只获取显示在舞台上的UI，默认为true
-	 * @return {UI}
+	 * @param {Ycc.Math.Dot} dot 点坐标，为舞台的绝对坐标
+	 * @param {boolean} [uiIsShow=true] 是否只获取显示在舞台上的UI，默认为true
+	 * @return {Ycc.UI.Base|null}
 	 */
 	Ycc.Layer.prototype.getUIFromPointer = function (dot,uiIsShow) {
 		uiIsShow = Ycc.utils.isBoolean(uiIsShow)?uiIsShow:true;
@@ -631,8 +643,9 @@
 	
 	/**
 	 * 获取图层中某个点所对应的所有UI，无论显示不显示，无论是否是幽灵，都会获取。
-	 * @param dot {Ycc.Math.Dot}	点坐标，为舞台的绝对坐标
-	 * @return {Ycc.UI[]}
+	 * @param {Ycc.Math.Dot} dot 点坐标，为舞台的绝对坐标
+	 * @param {object} [options]
+	 * @return {Ycc.UI.Base[]}
 	 */
 	Ycc.Layer.prototype.getUIListFromPointer = function (dot) {
 		var self = this;
@@ -649,8 +662,8 @@
 	
 	/**
 	 * 根据图层坐标，将图层内某个点的相对坐标（相对于图层），转换为舞台的绝对坐标
-	 * @param dotOrArr	{Ycc.Math.Dot | Ycc.Math.Dot[]}
-	 * @return {Ycc.Math.Dot | Ycc.Math.Dot[]}
+	 * @param {Ycc.Math.Dot|Ycc.Math.Dot[]} dotOrArr
+	 * @return {Ycc.Math.Dot|Ycc.Math.Dot[]}
 	 */
 	Ycc.Layer.prototype.transformToAbsolute = function (dotOrArr) {
 		var res = null;
@@ -673,8 +686,8 @@
 	
 	/**
 	 * 根据图层坐标，将某个点的绝对坐标，转换为图层内的相对坐标
-	 * @param dotOrArr	{Ycc.Math.Dot | Ycc.Math.Dot[]}
-	 * @return {Ycc.Math.Dot | Ycc.Math.Dot[]}
+	 * @param {Ycc.Math.Dot|Ycc.Math.Dot[]} dotOrArr
+	 * @return {Ycc.Math.Dot|Ycc.Math.Dot[]}
 	 */
 	Ycc.Layer.prototype.transformToLocal = function (dotOrArr) {
 		var res = null;
@@ -697,7 +710,7 @@
 	
 	/**
 	 * 绘制所有UI至某个绘图环境
-	 * @param ctx
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	Ycc.Layer.prototype.renderAllToCtx = function (ctx) {
 		var self = this;
@@ -746,7 +759,8 @@
 	
 	/**
 	 * 合并需要合并的最小区域
-	 * @param absolutePositionRect	当前UI的绝对坐标范围
+	 * @param {Ycc.Math.Rect} absolutePositionRect 当前UI的绝对坐标范围
+	 * @return {Ycc.Math.Rect}
 	 * @private
 	 */
 	Ycc.Layer.prototype._mergeCtxCacheRect = function (absolutePositionRect) {
@@ -784,6 +798,7 @@
 	
 	/**
 	 * 更新图层的缓存绘图环境
+	 * @return {void}
 	 */
 	Ycc.Layer.prototype.updateCache = function () {
 		// 判断是否使用缓存
@@ -796,6 +811,7 @@
 	
 	/**
 	 * 清空缓存画布、缓存区域
+	 * @return {void}
 	 */
 	Ycc.Layer.prototype.clearCache = function () {
 		var w = this.ctxCache.canvas.width;

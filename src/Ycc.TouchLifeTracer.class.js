@@ -11,6 +11,15 @@
 	
 	
 	
+	/**
+	 * @typedef {Object} Ycc.TouchLifeTracer.TouchLife
+	 * @property {number} id - 生命周期id
+	 * @property {Touch} startTouchEvent - 开始的touch事件
+	 * @property {Touch|null} endTouchEvent - 结束的touch事件
+	 * @property {Touch[]} moveTouchEventList - 移动的touch事件列表
+	 * @property {number} startTime - 开始时间
+	 * @property {number} endTime - 结束时间
+	 */
 	
 	/**
 	 * touch事件的生命周期类
@@ -71,16 +80,19 @@
 		
 		/**
 		 * 追踪的对象
+		 * @type {HTMLElement}
 		 * */
 		this.target = opt.target;
 		
 		/**
 		 * 作用于target的所有生命周期，包含存活和死亡的周期
+		 * @type {Ycc.TouchLifeTracer.TouchLife[]}
 		 * */
 		this._lifeList = [];
 		
 		/**
 		 * 当前存活的生命周期，正在与target接触的触摸点生命周期
+		 * @type {Ycc.TouchLifeTracer.TouchLife[]}
 		 * */
 		this.currentLifeList = [];
 		
@@ -104,29 +116,26 @@
 		
 		/**
 		 * 某个生命周期开始
-		 * @type {function}
-		 * @param callback(life)
+		 * @type {function(Ycc.TouchLifeTracer.TouchLife): void}
 		 * */
 		this.onlifestart = null;
 		
 		/**
 		 * 某个生命周期状态变更
-		 * @type {function}
-		 * @param callback(life)
+		 * @type {function(Ycc.TouchLifeTracer.TouchLife): void}
 		 * */
 		this.onlifechange = null;
 		
 		/**
 		 * 某个生命周期开始
-		 * @type {function}
-		 * @param callback(life)
+		 * @type {function(Ycc.TouchLifeTracer.TouchLife): void}
 		 * */
 		this.onlifeend = null;
 		
 		/**
 		 * 添加生命周期
-		 * @param life {TouchLife}	生命周期
-		 * @return {*}
+		 * @param {Ycc.TouchLifeTracer.TouchLife} life	生命周期
+		 * @return {void}
 		 */
 		this.addLife = function (life) {
 			this._lifeList.push(life);
@@ -134,8 +143,8 @@
 		
 		/**
 		 * 根据identifier查找生命周期，此方法只能在生命周期内使用
-		 * @param identifier
-		 * @return {*}
+		 * @param {number} identifier
+		 * @return {Ycc.TouchLifeTracer.TouchLife|undefined}
 		 */
 		this.findCurrentLifeByTouchID = function (identifier) {
 			for(var i=0;i<this.currentLifeList.length;i++){
@@ -147,7 +156,7 @@
 		
 		/**
 		 * 根据touchID删除当前触摸的生命周期
-		 * @param identifier
+		 * @param {number} identifier
 		 * @return {boolean}
 		 */
 		this.deleteCurrentLifeByTouchID = function (identifier) {
@@ -215,7 +224,7 @@
 	
 	/**
 	 * 同步当前HTML元素的touches
-	 * @param e 原生的touch事件。touchstart、end、move ...
+	 * @param {TouchEvent} e 原生的touch事件。touchstart、end、move ...
 	 */
 	Ycc.TouchLifeTracer.prototype.syncTouches = function (e) {
 		this.touches = [];
@@ -239,6 +248,9 @@
 	
 	/**
 	 * 寻找移动过的接触点
+	 * @param {Touch[]} moveTouchEventList
+	 * @param {Touch} touch
+	 * @return {number}
 	 */
 	Ycc.TouchLifeTracer.prototype.indexOfTouchFromMoveTouchEventList = function (moveTouchEventList,touch) {
 		for(var i=0;i<moveTouchEventList.length;i++){

@@ -11,14 +11,14 @@
 	
 	/**
 	 * 椭圆
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
-	 * @param option.fill=false {boolean}	填充or描边
-	 * @param option.color=black {string} 圆的颜色
-	 * @param option.point {Ycc.Math.Dot} 圆心位置
-	 * @param option.width=20 {number} 长轴
-	 * @param option.height=10 {number} 短轴
-	 * @param option.angle=0	{number} 椭圆绕其中心的自转角度
+	 * @param {object} option		所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。
+	 * @param {boolean} option.fill=false	填充or描边
+	 * @param {string} option.color=black 圆的颜色
+	 * @param {Ycc.Math.Dot} option.point 圆心位置
+	 * @param {number} option.width=20 长轴
+	 * @param {number} option.height=10 短轴
+	 * @param {number} option.angle=0 椭圆绕其中心的自转角度
 	 * 		注：通过rotation设置的旋转角度只会旋转椭圆的中心点，此处的angle是将椭圆本身围绕中心点旋转。
 	 * 		此处的理解，可以结合地球绕太阳旋转，angle表示自转角度，rotation表示公转角度。
 	 * @constructor
@@ -55,6 +55,7 @@
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Ellipse.prototype.computeUIProps = function () {
 		var x=this.point.x,
@@ -84,6 +85,7 @@
 	
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.Ellipse.prototype.render = function () {
 		var width = this.width*this.dpi,
@@ -125,9 +127,10 @@
 	
 	/**
 	 * 判断是否在椭圆内
-	 * @param dot	绝对坐标
-	 * @param noneZeroMode
+	 * @param {Ycc.Math.Dot} dot	绝对坐标
+	 * @param {number} [noneZeroMode]
 	 * @override
+	 * @return {boolean}
 	 */
 	Ycc.UI.Ellipse.prototype.containDot = function (dot,noneZeroMode) {
 		var point = this.transformByRotate(this.point);

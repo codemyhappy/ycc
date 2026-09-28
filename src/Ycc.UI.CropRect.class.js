@@ -11,7 +11,7 @@
 	
 	/**
 	 * 裁剪框
-	 * @param option	{object}		所有可配置的配置项
+	 * @param {object} option		所有可配置的配置项
 	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
 	 * @param option.fill=true {boolean}	填充or描边
 	 * @constructor
@@ -109,7 +109,7 @@
 	
 	/**
 	 * 设置区块的操作按钮
-	 * @param btns
+	 * @param {Array<object>} btns
 	 */
 	Ycc.UI.CropRect.prototype.setCtrlBtns = function (btns) {
 		var self = this;
@@ -141,6 +141,7 @@
 	
 	/**
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
+	 * @return {void}
 	 */
 	Ycc.UI.CropRect.prototype.computeUIProps = function () {
 		// 设置画布属性再计算，否则计算内容长度会有偏差
@@ -329,6 +330,7 @@
 	
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.CropRect.prototype.render = function () {
 		

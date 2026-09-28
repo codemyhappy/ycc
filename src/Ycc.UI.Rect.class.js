@@ -11,10 +11,10 @@
 	
 	/**
 	 * 方块
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.rect	{Ycc.Math.Rect}	容纳区。会根据属性设置动态修改。
-	 * @param option.fill=true {boolean}	填充or描边
-	 * @param option.color=black {string} 方块颜色
+	 * @param {object} option			所有可配置的配置项
+	 * @param {Ycc.Math.Rect} option.rect	容纳区。会根据属性设置动态修改。
+	 * @param {boolean} [option.fill=true] 填充or描边
+	 * @param {string} [option.color=black] 方块颜色
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -42,6 +42,7 @@
 	/**
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
+	 * @return {void}
 	 * @override
 	 */
 	Ycc.UI.Rect.prototype.computeUIProps = function () {
@@ -56,6 +57,7 @@
 	
 	/**
 	 * 绘制
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	Ycc.UI.Rect.prototype.render = function (ctx) {
 		var self = this;

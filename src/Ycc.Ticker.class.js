@@ -20,7 +20,7 @@
 	 * 总帧数<=总心跳次数；
 	 * 只有当总帧数*每帧的理论时间小于总心跳时间，帧的监听函数才会触发，以此来控制帧率；
 	 *
-	 * @param yccInstance
+	 * @param {Ycc} yccInstance - ycc实例
 	 * @constructor
 	 */
 	Ycc.Ticker = function (yccInstance) {
@@ -34,7 +34,7 @@
 		
 		/**
 		 * 当前帧
-		 * @type {Frame}
+		 * @type {Ycc.Ticker.Frame|null}
 		 */
 		this.currentFrame = null;
 		
@@ -128,8 +128,8 @@
 	
 	/**
 	 * 定时器开始
-	 * @param [frameRate] 心跳频率，即帧率
-	 * 可取值有[60,30,20,15]
+	 * @param {number} [frameRate] - 心跳频率，即帧率。可取值有[60,30,20,15]
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.start = function (frameRate) {
 		var timer = requestAnimationFrame || webkitRequestAnimationFrame || mozRequestAnimationFrame || oRequestAnimationFrame || msRequestAnimationFrame;
@@ -203,6 +203,7 @@
 	
 	/**
 	 * 停止心跳
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.stop = function () {
 		var stop = cancelAnimationFrame || webkitCancelAnimationFrame || mozCancelAnimationFrame || oCancelAnimationFrame;
@@ -218,7 +219,8 @@
 	
 	/**
 	 * 给每帧添加自定义的监听函数
-	 * @param listener
+	 * @param {function(Ycc.Ticker.Frame): void} listener - 帧监听函数
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.addFrameListener = function (listener) {
 		this.frameListenerList.push(listener);
@@ -226,7 +228,8 @@
 	
 	/**
 	 * 移除某个监听函数
-	 * @param listener
+	 * @param {function(Ycc.Ticker.Frame): void} listener - 帧监听函数
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.removeFrameListener = function (listener) {
 		var index = this.frameListenerList.indexOf(listener);
@@ -237,6 +240,8 @@
 	
 	/**
 	 * 执行所有自定义的帧监听函数
+	 * @param {Ycc.Ticker.Frame} frame - 帧对象
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.broadcastFrameEvent = function (frame) {
 		for(var i =0;i<this.frameListenerList.length;i++){
@@ -247,6 +252,8 @@
 	
 	/**
 	 * 执行所有图层的监听函数
+	 * @param {Ycc.Ticker.Frame} frame - 帧对象
+	 * @return {void}
 	 */
 	Ycc.Ticker.prototype.broadcastToLayer = function (frame) {
 		for(var i = 0;i<this.yccInstance.layerList.length;i++){
@@ -259,7 +266,8 @@
 	/**
 	 * 帧 私有类
 	 * @constructor
-	 * @param ticker {Ycc.Ticker}
+	 * @param {Ycc.Ticker} ticker
+	 * @private
 	 */
 	function Frame(ticker){
 		/**
@@ -293,5 +301,5 @@
 		 */
 		this.isRendered = false;
 	}
-	
+
 })(Ycc);

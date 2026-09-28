@@ -11,8 +11,15 @@
 
 (function (Ycc){
 	/**
+	 * @typedef {Object} Ycc.PhotoManager.Photo
+	 * @property {ImageData} imageData
+	 * @property {Date} createTime
+	 * @property {number} id
+	 */
+
+	/**
 	 * 照片数据结构类
-	 * @param imageData
+	 * @param {ImageData} imageData
 	 * @constructor
 	 */
 	var Photo = function(imageData) {
@@ -29,15 +36,19 @@
 	 */
 	Ycc.PhotoManager = function (yccInstance) {
 
+		/** @type {Ycc} */
 		this.yccInstance = yccInstance;
 
+		/** @type {CanvasRenderingContext2D} */
 		this.ctx = yccInstance.ctx;
 		
+		/** @type {Ycc.PhotoManager.Photo[]} */
 		this._photos = [];
 	};
 	
 	/**
 	 * 保存快照，即保存当前的原子图形渲染步骤
+	 * @return {Ycc.PhotoManager}
 	 */
 	Ycc.PhotoManager.prototype.takePhoto = function () {
 		this._photos.push(new Photo(this.ctx.getImageData(0,0,this.yccInstance.getStageWidth(),this.yccInstance.getStageHeight())));
@@ -46,15 +57,15 @@
 	
 	/**
 	 * 获取保存的历史照片
-	 * @returns {Array}
+	 * @returns {Ycc.PhotoManager.Photo[]}
 	 */
 	Ycc.PhotoManager.prototype.getHistoryPhotos = function () {
 		return this._photos;
 	};
 	/**
 	 * 显示照片
-	 * @param photo		{Photo}
-	 * @returns 		{Photo}
+	 * @param {Ycc.PhotoManager.Photo} photo
+	 * @returns {Ycc.PhotoManager.Photo}
 	 */
 	Ycc.PhotoManager.prototype.showPhoto = function (photo) {
 		this.ctx.putImageData(photo.imageData,0,0);
@@ -64,7 +75,7 @@
 	
 	/**
 	 * 显示最后一次保存的快照
-	 * @returns {boolean}
+	 * @returns {Ycc.PhotoManager.Photo|false}
 	 */
 	Ycc.PhotoManager.prototype.showLastPhoto = function () {
 		var len = this._photos.length;
@@ -78,8 +89,8 @@
 	
 	/**
 	 * 删除照片
-	 * @param photoId	照片的id
-	 * @returns {*}
+	 * @param {number} photoId	照片的id
+	 * @returns {Ycc.PhotoManager.Photo|false}
 	 */
 	Ycc.PhotoManager.prototype.delPhotoById = function (photoId) {
 		var tempPhotos = this._photos.slice(0);

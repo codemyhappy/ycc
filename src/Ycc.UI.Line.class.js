@@ -10,11 +10,11 @@
 	
 	/**
 	 * 线段。可设置属性如下
-	 * @param option	{object}		所有可配置的配置项
-	 * @param option.start	{Ycc.Math.Dot}	起点
-	 * @param option.end	{Ycc.Math.Dot}	终点
-	 * @param option.width=1	{number}	线条宽度
-	 * @param option.color="black"	{string}	线条颜色
+	 * @param {object} option		所有可配置的配置项
+	 * @param {Ycc.Math.Dot} option.start	起点
+	 * @param {Ycc.Math.Dot} option.end	终点
+	 * @param {number} option.width=1	线条宽度
+	 * @param {string} option.color="black"	线条颜色
 	 * @constructor
 	 * @extends Ycc.UI.Polygon
 	 */
@@ -37,6 +37,7 @@
 	 * 计算UI的各种属性。此操作必须在绘制之前调用。
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Line.prototype.computeUIProps = function () {
 		this.rect.x = this.start.x<this.end.x?this.start.x:this.end.x;
@@ -86,6 +87,7 @@
 	};
 	/**
 	 * 绘制函数与Polygon相同
+	 * @param {CanvasRenderingContext2D} [ctx]
 	 */
 	// Ycc.UI.Line.prototype.render = function () {
 	//

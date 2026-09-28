@@ -21,6 +21,7 @@
 	 *
 	 * @constructor
 	 * @extends Ycc.Listener Ycc.Tree
+	 * @param {object} option
 	 */
 	Ycc.UI.Base = function (option) {
 		Ycc.Listener.call(this);
@@ -46,13 +47,13 @@
 		
 		/**
 		 * 绘图环境
-		 * @type {null}
+		 * @type {CanvasRenderingContext2D|null}
 		 */
 		this.ctx = null;
 		
 		/**
 		 * 缓存的绘图环境
-		 * @type {null}
+		 * @type {CanvasRenderingContext2D|null}
 		 */
 		this.ctxCache = null;
 		
@@ -247,7 +248,8 @@
 	
 	/**
 	 * 在某个图层中初始化UI
-	 * @param layer	{Layer}		图层
+	 * @param {Ycc.Layer} layer		图层
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.init = function (layer) {
 		Ycc.utils.isFn(this._beforeInit) && this._beforeInit();
@@ -273,6 +275,7 @@
 	 * <br> 计算与绘制分离的好处是，在绘制UI之前就可以提前确定元素的各种信息，从而判断是否需要绘制。
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.computeUIProps = function () {
 	
@@ -281,7 +284,8 @@
 	/**
 	 * 渲染容纳区rect的背景色
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
-	 * @param absoluteRect	{Ycc.Math.Rect}	容纳区的绝对位置
+	 * @param {Ycc.Math.Rect} absoluteRect	容纳区的绝对位置
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.renderRectBgColor = function (absoluteRect) {
 		var rect = absoluteRect;
@@ -306,7 +310,8 @@
 	/**
 	 * 渲染容纳区rect的边框
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
-	 * @param absoluteRect	{Ycc.Math.Rect}	容纳区的绝对位置
+	 * @param {Ycc.Math.Rect} absoluteRect	容纳区的绝对位置
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.renderRectBorder = function (absoluteRect) {
 		// console.log('绘制边框');
@@ -329,7 +334,8 @@
 	/**
 	 * 绘制UI平移、旋转之前的位置，用虚线绘制
 	 * 需要子UI重载
-	 * @param [ctx]	绘图环境，非必传
+	 * @param {CanvasRenderingContext2D} [ctx]	绘图环境，非必传
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.renderDashBeforeUI = function (ctx) {
 	
@@ -339,6 +345,7 @@
 	/**
 	 * 删除自身。
 	 * 若子类包含多个UI，需要重载
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.removeSelf = function () {
 		this.belongTo.removeUI(this);
@@ -348,7 +355,7 @@
 	
 	/**
 	 * 添加子ui
-	 * @param ui
+	 * @param {Ycc.UI.Base} ui
 	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.Base.prototype.addChild = function (ui) {
@@ -360,7 +367,8 @@
 	
 	/**
 	 * 删除子ui
-	 * @param ui
+	 * @param {Ycc.UI.Base} ui
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.Base.prototype.removeChild = function (ui) {
 		this.removeChildTree(ui);
@@ -373,6 +381,7 @@
 	 * 先缩放、再旋转。
 	 * @todo 子类渲染前需要调用此方法
 	 * @todo 多边形替换rect后，此方法废弃，不再调用
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.scaleAndRotate = function () {
 		// 坐标系缩放
@@ -402,7 +411,8 @@
 	
 	/**
 	 * 判断当前区域在某个区域外
-	 * @param rect {Ycc.Math.Rect}
+	 * @param {Ycc.Math.Rect} rect
+	 * @return {boolean}
 	 */
 	Ycc.UI.Base.prototype.isOutOfRect = function (rect) {
 		var x = rect.x;
@@ -420,7 +430,8 @@
 	/**
 	 * 递归释放内存，等待GC
 	 * 将所有引用属性设为null
-	 * @param uiNode	ui节点
+	 * @static
+	 * @param {Ycc.UI.Base} uiNode	ui节点
 	 */
 	Ycc.UI.release = function (uiNode) {
 		
@@ -514,6 +525,7 @@
 	 * 渲染至绘图环境。
 	 * 		<br> 注意：重写此方法时，不能修改UI类的属性。修改属性，应该放在computeUIProps方法内。
 	 * @override
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype.render = function () {
 	
@@ -522,8 +534,9 @@
 	/**
 	 * 绘制UI的容器（红色小方框）
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
-	 * @param absoluteRect {Ycc.Math.Rect}	UI的绝对坐标
+	 * @param {Ycc.Math.Rect} absoluteRect	UI的绝对坐标
 	 * @private
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype._renderContainer = function (absoluteRect) {
 		var rect = absoluteRect;
@@ -544,7 +557,7 @@
 	 * 此方法不允许重载、覆盖
 	 * <br> 开启离屏canvas后，此过程只会发生在离屏canvas中
 	 * @private
-	 * @return {renderError.message|null}
+	 * @return {{message:string}|null}
 	 */
 	Ycc.UI.Base.prototype.__render = function () {
 		this.triggerListener('computestart',new Ycc.Event("computestart"));
@@ -585,6 +598,7 @@
 	/**
 	 * UI类渲染前的处理
 	 * @private
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype._processBeforeRender = function(){
 		this.triggerListener('renderstart',new Ycc.Event("renderstart"));
@@ -597,6 +611,7 @@
 	/**
 	 * UI类渲染后的处理
 	 * @private
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype._processAfterRender = function(){
 		// 取消设置的透明度
@@ -606,8 +621,8 @@
 
 	/**
 	 * 给定宽度，获取能容纳的最长单行字符串
-	 * @param content	{string} 文本内容
-	 * @param width		{number} 指定宽度
+	 * @param {string} content	文本内容
+	 * @param {number} width	指定宽度
 	 * @return {string}
 	 */
 	Ycc.UI.Base.prototype.getMaxContentInWidth = function (content, width) {
@@ -629,8 +644,8 @@
 	
 	/**
 	 * 合并参数，只会合并对象中已存在的key
-	 * @param option
-	 * @return {Ycc.UI}
+	 * @param {object} option
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.Base.prototype.extend = function (option) {
 		option = option || {};
@@ -645,7 +660,7 @@
 	
 	/**
 	 * 克隆ui
-	 * @return {Ycc.UI}
+	 * @return {Ycc.UI.Base}
 	 */
 	Ycc.UI.Base.prototype.clone = function () {
 		var ui = new this.yccClass();
@@ -655,6 +670,7 @@
 	
 	/**
 	 * 获取UI平移、旋转之后位置的多边形区域，子UI需覆盖此方法
+	 * @return {Ycc.Math.Dot[]}
 	 */
 	Ycc.UI.Base.prototype.getAbsolutePositionPolygon = function () {};
 	
@@ -671,7 +687,7 @@
 	/**
 	 * 获取UI的绝对坐标，主要考虑图层坐标
 	 * 注：此区域未经过旋转
-	 * @return {Ycc.Math.Rect}
+	 * @return {Ycc.Math.Dot}
 	 */
 	Ycc.UI.Base.prototype.getAbsolutePosition = function(){
 		var pos = new Ycc.Math.Rect();
@@ -753,6 +769,7 @@
 	
 	/**
 	 * 获取当前UI在树结构中的深度
+	 * @return {number}
 	 */
 	Ycc.UI.Base.prototype.getDeepLevel = function () {
 		return this.getParentList().length+1;
@@ -760,8 +777,8 @@
 	
 	/**
 	 * 根据当前的锚点、旋转角度获取某个点的转换之后的坐标
-	 * @param dot {Ycc.Math.Dot|Ycc.Math.Dot[]}	需要转换的点，该点为相对坐标，相对于当前UI的父级
-	 * @return {Ycc.Math.Dot}		转换后的点，该点为绝对坐标
+	 * @param {Ycc.Math.Dot|Ycc.Math.Dot[]} dot	需要转换的点，该点为相对坐标，相对于当前UI的父级
+	 * @return {Ycc.Math.Dot|Ycc.Math.Dot[]}		转换后的点，该点为绝对坐标
 	 */
 	Ycc.UI.Base.prototype.transformByRotate = function (dot) {
 		var self = this;
@@ -792,9 +809,10 @@
 	
 	/**
 	 * 设置当前环境画布的所有的属性
-	 * @param props 属性map
-	 * @param ctx	绘图环境，可选参数，默认为离屏canvas的绘图环境
+	 * @param {object} [props] 属性map
+	 * @param {CanvasRenderingContext2D} [ctx]	绘图环境，可选参数，默认为离屏canvas的绘图环境
 	 * @private
+	 * @return {void}
 	 */
 	Ycc.UI.Base.prototype._setCtxProps = function (props,ctx) {
 		var self = this;
@@ -823,11 +841,11 @@
 	
 	/**
 	 * 冒泡触发UI的事件
-	 * @param type
-	 * @param x
-	 * @param y
-	 * @param originEvent ycc事件所对应的原始事件
-	 * @return {Ycc.UI[]}  返回已触发事件的UI列表
+	 * @param {string} type
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {Event} [originEvent] ycc事件所对应的原始事件
+	 * @return {Ycc.UI.Base[]}  返回已触发事件的UI列表
 	 */
 	Ycc.UI.Base.prototype.triggerUIEventBubbleUp = function(type,x,y,originEvent) {
 		var ui = this;

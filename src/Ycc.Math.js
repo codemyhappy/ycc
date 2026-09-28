@@ -18,14 +18,14 @@
 	
 	/**
 	 * 点
-	 * @param x	{number} x坐标
-	 * @param y {number} y坐标
+	 * @param {number} x - x坐标
+	 * @param {number} y - y坐标
 	 * @constructor
 	 *//**
 	 * 点
-	 * @param [dot] {object}
-	 * @param dot.x {number} x坐标
-	 * @param dot.y {number} y坐标
+	 * @param {object} dot - 点对象
+	 * @param {number} dot.x - x坐标
+	 * @param {number} dot.y - y坐标
 	 * @constructor
 	 */
 	Ycc.Math.Dot = function (dot) {
@@ -53,7 +53,8 @@
 	
 	/**
 	 * 点是否在某个区域内
-	 * @param rect	{Ycc.Math.Rect}	区域
+	 * @param {Ycc.Math.Rect} rect - 区域
+	 * @return {boolean}
 	 */
 	Ycc.Math.Dot.prototype.isInRect = function (rect) {
 		return this.x>=rect.x&&this.x<=rect.x+rect.width  && this.y>=rect.y && this.y<=rect.y+rect.height;
@@ -61,7 +62,7 @@
 	
 	/**
 	 * 判读两点位置是否相同
-	 * @param dot
+	 * @param {Ycc.Math.Dot} dot - 另一个点
 	 * @return {boolean}
 	 */
 	Ycc.Math.Dot.prototype.isEqual = function (dot) {
@@ -70,7 +71,7 @@
 	
 	/**
 	 * 点的加法/点的偏移量
-	 * @param dot {Ycc.Math.Dot} 加的点
+	 * @param {Ycc.Math.Dot} dot - 加的点
 	 * @return {Ycc.Math.Dot} 返回一个新的点
 	 */
 	Ycc.Math.Dot.prototype.plus = function (dot) {
@@ -79,9 +80,9 @@
 	
 	/**
 	 * 将当前点绕另外一个点旋转一定度数
-	 * @param rotation	旋转角度
-	 * @param anchorDot	锚点坐标
-	 * @return 旋转后的点
+	 * @param {number} rotation - 旋转角度
+	 * @param {Ycc.Math.Dot} [anchorDot] - 锚点坐标
+	 * @return {Ycc.Math.Dot} 旋转后的点
 	 */
 	Ycc.Math.Dot.prototype.rotate = function (rotation,anchorDot) {
 		anchorDot=anchorDot||new Ycc.Math.Dot(0,0);
@@ -93,9 +94,10 @@
 	
 	/**
 	 * 判断三点是否共线
-	 * @param dot1
-	 * @param dot2
-	 * @param dot3
+	 * @param {Ycc.Math.Dot} dot1 - 第一个点
+	 * @param {Ycc.Math.Dot} dot2 - 第二个点
+	 * @param {Ycc.Math.Dot} dot3 - 第三个点
+	 * @return {boolean}
 	 */
 	Ycc.Math.Dot.threeDotIsOnLine = function (dot1,dot2,dot3) {
 		// 存在位置相同点肯定共线
@@ -114,24 +116,24 @@
 	
 	/**
 	 * 区域
-	 * @param startDot {Dot}
-	 * @param width
-	 * @param height
+	 * @param {Ycc.Math.Dot} startDot - 起点
+	 * @param {number} width - 宽度
+	 * @param {number} height - 高度
 	 * @constructor
 	 *//**
 	 * 区域
-	 * @param x
-	 * @param y
-	 * @param width
-	 * @param height
+	 * @param {number} x - 左上角x坐标
+	 * @param {number} y - 左上角y坐标
+	 * @param {number} width - 宽度
+	 * @param {number} height - 高度
 	 * @constructor
 	 *//**
 	 * 区域
-	 * @param rect
-	 * @param rect.x
-	 * @param rect.y
-	 * @param rect.width
-	 * @param rect.height
+	 * @param {object} rect - 矩形对象
+	 * @param {number} rect.x - 左上角x坐标
+	 * @param {number} rect.y - 左上角y坐标
+	 * @param {number} rect.width - 宽度
+	 * @param {number} rect.height - 高度
 	 * @constructor
 	 */
 	Ycc.Math.Rect = function (rect) {
@@ -186,6 +188,7 @@
 	
 	/**
 	 * 将矩形的长和宽转换为正数
+	 * @return {void}
 	 */
 	Ycc.Math.Rect.prototype.toPositive = function () {
 		var x0 = this.x,
@@ -214,8 +217,8 @@
 	
 	/**
 	 * 根据顶点更新数值
-	 * @param vertices
-	 * @return {*}
+	 * @param {Ycc.Math.Dot[]} vertices - 顶点数组
+	 * @return {void}
 	 */
 	Ycc.Math.Rect.prototype.updateByVertices = function (vertices) {
 		if(!Ycc.utils.isArray(vertices))
@@ -231,6 +234,19 @@
 	
 	/**
 	 * 向量构造函数
+	 * @constructor
+	 *//**
+	 * 向量构造函数
+	 * @param {number} x - x分量
+	 * @param {number} y - y分量
+	 * @param {number} [z=0] - z分量
+	 * @constructor
+	 *//**
+	 * 向量构造函数
+	 * @param {object} obj - 向量对象
+	 * @param {number} [obj.x=0] - x分量
+	 * @param {number} [obj.y=0] - y分量
+	 * @param {number} [obj.z=0] - z分量
 	 * @constructor
 	 */
 	Ycc.Math.Vector = function () {
@@ -254,7 +270,7 @@
 	
 	/**
 	 * 向量的点乘法
-	 * @param v2 {Ycc.Math.Vector} 点乘向量
+	 * @param {Ycc.Math.Vector} v2 - 点乘向量
 	 * @return {number}
 	 */
 	Ycc.Math.Vector.prototype.dot = function (v2) {
@@ -264,8 +280,8 @@
 	
 	/**
 	 * 向量的叉乘法
-	 * @param v2 {Ycc.Math.Vector} 叉乘向量
-	 * @return {number}
+	 * @param {Ycc.Math.Vector} v2 - 叉乘向量
+	 * @return {Ycc.Math.Vector}
 	 */
 	Ycc.Math.Vector.prototype.cross = function (v2) {
 		var res = new Ycc.Math.Vector();
@@ -287,9 +303,9 @@
 	
 	/**
 	 * 矩阵的构造方法。
-	 * @param data	{array}		矩阵所有行拼接的数组
-	 * @param m		{number}	行数
-	 * @param n		{number}	列数
+	 * @param {number[]} data - 矩阵所有行拼接的数组
+	 * @param {number} m - 行数
+	 * @param {number} n - 列数
 	 * @constructor
 	 */
 	Ycc.Math.Matrix = function (data,m,n) {
@@ -300,7 +316,8 @@
 	
 	/**
 	 * 矩阵点乘法
-	 * @param M	{Ycc.Math.Matrix}	另一个矩阵
+	 * @param {Ycc.Math.Matrix} M - 另一个矩阵
+	 * @return {Ycc.Math.Matrix}
 	 */
 	Ycc.Math.Matrix.prototype.dot = function (M) {
 		if(M.m!==this.n || M.n!==this.m)
@@ -326,8 +343,8 @@
 	/**
 	 * 获取矩阵i行j列的元素。
 	 * 注：i，i下标从1开始
-	 * @param i
-	 * @param j
+	 * @param {number} i - 行号
+	 * @param {number} j - 列号
 	 * @return {number}
 	 */
 	Ycc.Math.Matrix.prototype.get = function (i, j) {
@@ -337,9 +354,10 @@
 	/**
 	 * 设置矩阵i行j列的元素为val
 	 * 注：i，i下标从1开始
-	 * @param i
-	 * @param j
-	 * @param val
+	 * @param {number} i - 行号
+	 * @param {number} j - 列号
+	 * @param {number} val - 值
+	 * @return {void}
 	 */
 	Ycc.Math.Matrix.prototype.set = function (i, j, val) {
 		this.data[(i-1)*this.n+j-1] = val;

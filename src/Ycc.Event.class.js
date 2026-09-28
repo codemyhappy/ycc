@@ -11,7 +11,7 @@
 	
 	/**
 	 * 事件的数据结构类
-	 * @param type {String}	事件类型
+	 * @param {string|Object} type - 事件类型字符串，或包含事件属性的对象
 	 * @constructor
 	 */
 	Ycc.Event = function (type) {
@@ -19,21 +19,22 @@
 		
 		/**
 		 * 事件类型
-		 * @type {string|Object}
+		 * @type {string}
 		 */
 		this.type = type?type:"";
 		/**
-		 * 鼠标或点击位置
+		 * 鼠标或点击位置x
 		 * @type {number}
 		 */
 		this.x=0;
 		/**
-		 * 鼠标或点击位置
+		 * 鼠标或点击位置y
 		 * @type {number}
 		 */
 		this.y=0;
 		/**
 		 * ycc事件所对应的原始事件
+		 * @type {Event|null}
 		 */
 		this.originEvent = null;
 		
