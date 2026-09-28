@@ -11,11 +11,16 @@
 	
 	/**
 	 * ycc实例的资源加载类
+	 * @param yccInstance {Ycc} ycc实例
 	 * @constructor
 	 */
-	Ycc.Loader = function () {
+	Ycc.Loader = function (yccInstance) {
 		this.yccClass = Ycc.Loader;
-		
+		/**
+		 * ycc实例
+		 * @type {Ycc}
+		 */
+		this.yccInstance = yccInstance;
 		/**
 		 * 异步模块
 		 * @type {Ycc.Ajax}
@@ -45,7 +50,7 @@
 	Ycc.Loader.prototype.loadResParallel = function (resArr, endCb, progressCb,endResArr,endResMap) {
 		endResArr = endResArr || [];
 		endResMap = endResMap || {};
-		
+		var self = this;
 		for(var i=0;i<resArr.length;i++){
 			var curRes = resArr[i];
 			var successEvent = "load";
@@ -53,9 +58,10 @@
 			curRes.type = curRes.type || 'image';
 			
 			if(curRes.type==='image'){
-				curRes.res = new Image();
+				// curRes.res = new Image();
+				curRes.res = self._createImage();
+				if(curRes.res.setAttribute) curRes.res.setAttribute('crossOrigin',curRes.crossOrigin||'');
 				curRes.res.src = curRes.url;
-				curRes.res.crossOrigin = curRes.crossOrigin||'';
 			}
 			if(curRes.type==='audio'){
 				successEvent = 'loadedmetadata';
@@ -65,9 +71,10 @@
 				curRes.res.crossOrigin = curRes.crossOrigin||'';
 			}
 			
-			curRes.res.addEventListener(successEvent,listener(curRes,i,true));
-			curRes.res.addEventListener(errorEvent,listener(curRes,i,false));
-			
+			// curRes.res.addEventListener(successEvent,listener(curRes,i,true));
+			// curRes.res.addEventListener(errorEvent,listener(curRes,i,false));
+			curRes.res['on'+successEvent] = listener(curRes,i,true);
+			curRes.res['on'+errorEvent] = listener(curRes,i,false);			
 			
 			function listener(curRes,index,error) {
 				return function () {
@@ -116,16 +123,22 @@
 		polyfillWx(self.basePath + curRes.url,function (fullPath) {
 			
 			if(curRes.type==='image'){
-				curRes.res = new Image();
+				// curRes.res = new Image();
+				curRes.res = self._createImage();
+				if(curRes.res.setAttribute) curRes.res.setAttribute('crossOrigin',curRes.crossOrigin||'');
 				curRes.res.src = fullPath;
 				
-				curRes.res.addEventListener(successEvent,onSuccess);
-				curRes.res.addEventListener(errorEvent,onError);
+				// curRes.res.addEventListener(successEvent,onSuccess);
+				// curRes.res.addEventListener(errorEvent,onError);
+				curRes.res['on'+successEvent] = onSuccess;
+				curRes.res['on'+errorEvent] = onError;
 				
 				// 超时提示只针对图片
 				timerId = setTimeout(function () {
-					curRes.res.removeEventListener(successEvent,onSuccess);
-					curRes.res.removeEventListener(errorEvent,onSuccess);
+					curRes.res['on'+successEvent] = null;
+					curRes.res['on'+errorEvent] = null;
+					// curRes.res.removeEventListener(successEvent,onSuccess);
+					// curRes.res.removeEventListener(errorEvent,onSuccess);
 					onError({message:"获取资源超时！"});
 				},curRes.timeout||10000);
 				
@@ -166,8 +179,8 @@
 			// console.log('loader:',curRes.name,'success');
 			clearTimeout(timerId);
 			if(curRes.type==='image' || ("undefined"!==typeof wx && curRes.type==='audio' )){
-				curRes.res.removeEventListener(successEvent,onSuccess);
-				curRes.res.removeEventListener(errorEvent,onError);
+				// curRes.res.removeEventListener(successEvent,onSuccess);
+				// curRes.res.removeEventListener(errorEvent,onError);
 			}
 
 			endResArr.push(curRes);
@@ -206,6 +219,14 @@
 		}
 		return null;
 	};
+
+	/**
+	 * 创建图片 兼容处理
+	 */
+	Ycc.Loader.prototype._createImage = function(){
+		if(this.yccInstance && this.yccInstance.config.appenv==='wxapp') return this.yccInstance.canvasDom.createImage();
+		return new Image();
+	}
 	
 	
 	

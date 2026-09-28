@@ -10,6 +10,7 @@
  * 应用启动入口类，每个实例都与一个canvas绑定。
  * 该canvas元素会被添加至HTML结构中，作为应用的显示舞台。
  * @param config {Object} 整个ycc的配置项
+ * @param config.appenv {String} 整个应用所运行的环境 默认：h5 <br> h5-普通web应用、wxapp-微信小程序、wxgame-微信小游戏
  * @param config.debugDrawContainer {Boolean} 是否显示所有UI的容纳区域
  * 若开启，所有UI都会创建一个属于自己的离屏canvas，大小与舞台一致
  * @constructor
@@ -61,7 +62,7 @@ var Ycc = function Ycc(config){
 	 * 资源加载器
 	 * @type {Ycc.Loader}
 	 */
-	this.loader = new Ycc.Loader();
+	this.loader = new Ycc.Loader(this);
 	
 	/**
 	 * 异步请求的封装
@@ -86,7 +87,8 @@ var Ycc = function Ycc(config){
 	 * @type {{debugDrawContainer:boolean}}
 	 */
 	this.config = Ycc.utils.extend({
-		debugDrawContainer:false
+		debugDrawContainer:false,
+		appenv:'h5'
 	},config||{});
 	
 	/**
@@ -130,6 +132,8 @@ Ycc.prototype.bindCanvas = function (canvas) {
 	this.canvasDom = canvas;
 	
 	this.ctx = canvas.getContext('2d');
+	// 适配wxapp 默认返回{left:0,top:0} @todo 待优化
+	this.ctx.canvas.getBoundingClientRect = this.ctx.canvas.getBoundingClientRect?this.ctx.canvas.getBoundingClientRect:function(){return{left:0,top:0}};
 	
 	this.layerList = [];
 	
@@ -402,6 +406,7 @@ Ycc.prototype.getUIListFromPointer = function (dot,options) {
  * ycc.bindCanvas(stage);
  *
  * @param options
+ * @param options.canvasDom 传入canvasDom
  * @param options.width
  * @param options.height
  * @param options.dpiAdaptation		是否根据dpi适配canvas大小
@@ -410,22 +415,23 @@ Ycc.prototype.getUIListFromPointer = function (dot,options) {
 Ycc.prototype.createCanvas = function (options) {
 	options = options||{};
 	var option = Ycc.utils.mergeObject({
-		width:window.innerWidth,
-		height:window.innerHeight,
-		dpiAdaptation:false
+		width:this.getSystemInfo().windowWidth,
+		height:this.getSystemInfo().windowHeight,
+		dpiAdaptation:false,
+		canvasDom:null
 	},options);
-	var canvas = document.createElement("canvas");
+	var canvas = option.canvasDom || document.createElement("canvas");
 	var dpi = this.getSystemInfo().devicePixelRatio;
 	if(option.dpiAdaptation){
 		canvas.width = option.width*dpi;
 		canvas.height = option.height*dpi;
-		canvas.style.width=option.width+'px';
+		if(canvas.style) canvas.style.width=option.width+'px';
 	}else{
 		canvas.width = option.width;
 		canvas.height = option.height;
 	}
 	// 去除5px inline-block偏差
-	canvas.style.display='block';
+	if(canvas.style) canvas.style.display='block';
 	return canvas;
 };
 

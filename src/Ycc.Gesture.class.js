@@ -39,6 +39,18 @@
 		 * @private
 		 */
 		this._longTapTimeout = null;
+
+		/**
+		 * 多点触摸是否正处于接触中
+		 * @type {Bolean}
+		 * @private
+		 */
+		this.ismutiltouching = false;
+
+		/**
+		 * 生命追踪
+		 */
+		this.touchLifeTracer = null;
 		
 		this._init();
 	};
@@ -64,6 +76,7 @@
 	Ycc.Gesture.prototype._initForMobile = function () {
 		var self = this;
 		var tracer = new Ycc.TouchLifeTracer({target:this.option.target});
+		this.touchLifeTracer = tracer;
 		// 上一次触摸、当前触摸
 		var preLife,curLife;
 		// 是否阻止事件
@@ -81,6 +94,7 @@
 
 			// 多个触摸点的情况
 			if(tracer.currentLifeList.length>1){
+				self.ismutiltouching = true;
 				// 判断是否启用多点触控
 				if(!self.option.useMulti) return;
 
@@ -95,7 +109,7 @@
 				curLife = tracer.currentLifeList[1];
 				return this;
 			}
-			
+			self.ismutiltouching = false;
 			// 只有一个触摸点的情况
 			prevent.tap = false;
 			prevent.swipe = false;
@@ -111,6 +125,8 @@
 			});
 			
 			if(tracer.currentLifeList.length>1){
+				self.ismutiltouching = true;
+
 				// 判断是否启用多点触控
 				if(!self.option.useMulti) return;
 				prevent.tap=true;
@@ -119,13 +135,18 @@
 				self.triggerListener('multichange',preLife,curLife);
 				
 				var rateAndAngle = self.getZoomRateAndRotateAngle(preLife,curLife);
-
+				
 				if(Ycc.utils.isNum(rateAndAngle.rate)){
-					self.triggerListener('zoom',rateAndAngle.rate);
+					var e = self._createEventData(preLife.startTouchEvent,'zoom');
+					e.zoomRate = rateAndAngle.rate;
+					self.triggerListener('zoom',self._createEventData(e,'zoom'));
 					self.triggerListener('log','zoom triggered',rateAndAngle.rate);
 				}
 				if(Ycc.utils.isNum(rateAndAngle.angle)){
-					self.triggerListener('rotate',rateAndAngle.angle);
+					var e = self._createEventData(preLife.startTouchEvent,'rotate');
+					e.angle = rateAndAngle.angle;
+					self.triggerListener('rotate',self._createEventData(e,'rotate'));
+					// self.triggerListener('rotate',self._createEventData(preLife.startTouchEvent,'rotate'),rateAndAngle.angle);
 					self.triggerListener('log','rotate triggered',rateAndAngle.angle);
 				}
 				return this;
@@ -133,6 +154,7 @@
 			
 			// 只有一个触摸点的情况
 			if(life.moveTouchEventList.length>0){
+				self.ismutiltouching = false;
 				var firstMove = life.startTouchEvent;
 				var lastMove = Array.prototype.slice.call(life.moveTouchEventList,-1)[0];
 				// 如果触摸点按下期间存在移动行为，且移动距离大于10，则认为该操作不是tap、longtap
@@ -145,13 +167,16 @@
 		};
 		tracer.onlifeend = function (life) {
 			self.triggerListener('dragend',self._createEventData(life.endTouchEvent,'dragend'));
+			self.ismutiltouching = true;
 
 			// 若某个触摸结束，当前触摸点个数为1，说明之前的操作为多点触控。这里发送多点触控结束事件
 			if(tracer.currentLifeList.length===1){
+				self.ismutiltouching = false;
 				return self.triggerListener('multiend',preLife,curLife);
 			}
 			
 			if(tracer.currentLifeList.length===0){
+				self.ismutiltouching = false;
 				
 				// 开始和结束时间在300ms内，认为是tap事件
 				if(!prevent.tap && life.endTime-life.startTime<300){
@@ -381,6 +406,10 @@
 			 */
 			identifier:-1,
 			
+			// x、y兼容微信端，web端其值等于pageX、pageY
+			x:0,
+			y:0,
+
 			clientX:0,
 			clientY:0,
 			pageX:0,
@@ -393,6 +422,15 @@
 			 * 手势滑动方向，此属性当且仅当type为swipe时有值
 			 */
 			swipeDirection:'',
+
+			/**
+			 * 缩放比例 仅当事件为zoom时可用
+			 */
+			zoomRate:1,
+			/**
+			 * 旋转角度 仅当事件为rotate时可用
+			 */
+			angle:0,
 
 			/**
 			 * 创建时间
